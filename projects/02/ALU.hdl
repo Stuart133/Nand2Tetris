@@ -57,7 +57,13 @@ CHIP ALU {
     And16(a=notxdone, b=notydone, out=and);
     Mux16(a=and, b=add, sel=f, out=fdone);
 
-    // negate output
+    // negate output - Plus ng pin
     Not16(in=fdone, out=notfdone);
-    Mux16(a=fdone, b=notfdone, sel=no, out=out);
+    Mux16(a=fdone, b=notfdone, sel=no, out=out, out[0..7]=zrin1, out[8..15]=zrin2, out[15]=ng);
+
+    // zr pin
+    Or8Way(in=zrin1, out=prezr1);
+    Or8Way(in=zrin2, out=prezr2);
+    Or(a=prezr1, b=prezr2, out=notzr);
+    Not(in=notzr, out=zr);
 }
