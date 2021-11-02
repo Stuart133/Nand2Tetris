@@ -16,5 +16,17 @@ CHIP PC {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // Incrementer output
+    Inc16(in=incr, out=incrdone);
+
+    // Control selection
+    Mux16(b=incrdone, sel=inc, out=mux0);
+    Mux16(a=mux0, b=in, sel=load, out=mux1);
+    Mux16(a=mux1, sel=reset, out=regin);
+    
+    // Load high?
+    Or(a=reset, b=load, out=load1);
+    Or(a=load1, b=inc, out=loadin);
+
+    Register(in=regin, load=loadin, out=out, out=incr);
 }
