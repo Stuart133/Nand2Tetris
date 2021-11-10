@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"hack-assembler/pkg/code"
 	"hack-assembler/pkg/parser"
 )
 
@@ -34,8 +35,12 @@ func printSymbol(p *parser.Parser) {
 	}
 
 	if p.InstructionType() == parser.C_INSTRUCTION {
-		fmt.Printf("Dest: %s\n", p.Dest())
-		fmt.Printf("Comp: %s\n", p.Comp())
-		fmt.Printf("Jump: %s\n", p.Jump())
+		d := code.Dest(p.Dest())
+		c := code.Comp(p.Comp())
+		j := code.Jump(p.Jump())
+
+		fmt.Printf("Dest: %s\n", d)
+		fmt.Printf("Comp: %s\n", c)
+		fmt.Printf("Jump: %s\n", j)
 	}
 }
