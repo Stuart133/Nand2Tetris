@@ -62,6 +62,44 @@ func (p *Parser) Symbol() string {
 	return l[1:]
 }
 
+func (p *Parser) Comp() string {
+	l := p.getLine()
+
+	c := getPart(l, "=", 1)
+	if c != "" {
+		cj := getPart(c, ";", 0)
+		if cj == "" {
+			return c
+		} else {
+			return cj
+		}
+	} else {
+		// If there was no dest field, we know there must be a jump, so return here
+		c = getPart(l, ";", 0)
+		return c
+	}
+}
+
+func (p *Parser) Dest() string {
+	l := p.getLine()
+
+	return getPart(l, "=", 0)
+}
+
+func (p *Parser) Jump() string {
+	l := p.getLine()
+
+	return getPart(l, ";", 1)
+}
+
+func getPart(l, sep string, loc int) string {
+	if strings.Contains(l, sep) {
+		return strings.Split(l, sep)[loc]
+	}
+
+	return ""
+}
+
 func (p *Parser) Advance() {
 	if p.HasMoreLines() {
 		p.position++

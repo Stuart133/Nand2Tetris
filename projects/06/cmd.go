@@ -32,4 +32,10 @@ func printSymbol(p *parser.Parser) {
 	if p.InstructionType() == parser.A_INSTRUCTION || p.InstructionType() == parser.L_INSTRUCTION {
 		fmt.Printf("Addr: %s\n", p.Symbol())
 	}
+
+	if p.InstructionType() == parser.C_INSTRUCTION {
+		fmt.Printf("Dest: %s\n", p.Dest())
+		fmt.Printf("Comp: %s\n", p.Comp())
+		fmt.Printf("Jump: %s\n", p.Jump())
+	}
 }
