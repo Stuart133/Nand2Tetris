@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+const (
+	A_INSTRUCTION = iota
+	C_INSTRUCTION
+	L_INSTRUCTION
+)
+
 type Parser struct {
 	lines    []string
 	position int
@@ -32,8 +38,28 @@ func Load(path string) (Parser, error) {
 	}, nil
 }
 
-func (p *Parser) GetLine() string {
+func (p *Parser) getLine() string {
 	return p.lines[p.position]
+}
+
+func (p *Parser) InstructionType() int {
+	l := p.getLine()
+
+	if strings.HasPrefix(l, "@") {
+		return A_INSTRUCTION
+	}
+
+	if strings.HasPrefix(l, "(") {
+		return L_INSTRUCTION
+	}
+
+	return C_INSTRUCTION
+}
+
+func (p *Parser) Symbol() string {
+	l := p.getLine()
+
+	return l[1:]
 }
 
 func (p *Parser) Advance() {

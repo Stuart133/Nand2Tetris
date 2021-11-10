@@ -17,13 +17,19 @@ func main() {
 
 	p, err := parser.Load(path)
 	if err != nil {
-		fmt.Println("There was an error loading the assembly file: $v", err)
+		fmt.Printf("There was an error loading the assembly file: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("%d: %s\n", 0, p.GetLine())
+	printSymbol(&p)
 	for i := 0; p.HasMoreLines(); i++ {
 		p.Advance()
-		fmt.Printf("%d: %s\n", i, p.GetLine())
+		printSymbol(&p)
+	}
+}
+
+func printSymbol(p *parser.Parser) {
+	if p.InstructionType() == parser.A_INSTRUCTION || p.InstructionType() == parser.L_INSTRUCTION {
+		fmt.Printf("Addr: %s\n", p.Symbol())
 	}
 }
