@@ -57,8 +57,6 @@ func Dest(d string) string {
 		"ADM": "111",
 	}
 
-	fmt.Println(d)
-
 	bin, v := dat[strings.TrimSpace(d)]
 	if !v {
 		panic(fmt.Sprintf("Missing code map for %s", d))

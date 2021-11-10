@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"hack-assembler/pkg/code"
@@ -22,11 +23,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	printSymbol(&p)
+	fmt.Println(assembleInstruction(&p))
 	for i := 0; p.HasMoreLines(); i++ {
 		p.Advance()
-		printSymbol(&p)
+		fmt.Println(assembleInstruction(&p))
 	}
+}
+
+func assembleInstruction(p *parser.Parser) string {
+	if p.InstructionType() == parser.A_INSTRUCTION || p.InstructionType() == parser.L_INSTRUCTION {
+		a, _ := strconv.Atoi(strings.TrimSpace(p.Symbol()))
+		return fmt.Sprintf("0%015b", a)
+	}
+
+	d := code.Dest(p.Dest())
+	c := code.Comp(p.Comp())
+	j := code.Jump(p.Jump())
+
+	return fmt.Sprintf("111%s%s%s", c, d, j)
 }
 
 func printSymbol(p *parser.Parser) {
