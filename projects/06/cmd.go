@@ -3,10 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
-	"hack-assembler/pkg/code"
+	"hack-assembler/pkg/assembler"
 	"hack-assembler/pkg/parser"
 )
 
@@ -23,44 +22,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	i := assembler.Assemble(&p)
 	oPath := fmt.Sprintf("%s.hack", strings.Split(getFilename(path), ".")[0])
-	err = assemble(&p, oPath)
+	err = saveFile(oPath, i)
 	if err != nil {
 		fmt.Printf("There was an error writing the the output file: %v\n", err)
 	}
 }
 
-func assemble(p *parser.Parser, path string) error {
+func saveFile(path string, data []string) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	_, err = f.Write([]byte(assembleInstruction(p)))
-	for p.HasMoreLines() {
-		p.Advance()
-		_, err = f.Write([]byte(assembleInstruction(p)))
-	}
-
-	if err != nil {
-		return err
+	for i := range data {
+		_, err := f.Write([]byte(data[i]))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
-}
-
-func assembleInstruction(p *parser.Parser) string {
-	if p.InstructionType() == parser.A_INSTRUCTION || p.InstructionType() == parser.L_INSTRUCTION {
-		a, _ := strconv.Atoi(p.Symbol())
-		return fmt.Sprintf("0%015b\n", a)
-	}
-
-	d := code.Dest(p.Dest())
-	c := code.Comp(p.Comp())
-	j := code.Jump(p.Jump())
-
-	return fmt.Sprintf("111%s%s%s\n", c, d, j)
 }
 
 func getFilename(path string) string {
