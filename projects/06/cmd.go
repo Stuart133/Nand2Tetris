@@ -22,7 +22,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	i := assembler.Assemble(&p)
+	a := assembler.NewAssembler(p)
+	i := a.Assemble()
 	oPath := fmt.Sprintf("%s.hack", strings.Split(getFilename(path), ".")[0])
 	err = saveFile(oPath, i)
 	if err != nil {
