@@ -28,7 +28,11 @@ func Load(path string) (Parser, error) {
 	lines := make([]string, 0)
 	for i := range rawLines {
 		if !strings.HasPrefix(rawLines[i], "//") && !(len(strings.TrimSpace(rawLines[i])) == 0) {
-			lines = append(lines, rawLines[i])
+			// Remove any trailing comment & whitespace
+			l := strings.Split(rawLines[i], "//")[0]
+			l = strings.TrimSpace(l)
+
+			lines = append(lines, l)
 		}
 	}
 
@@ -59,7 +63,7 @@ func (p *Parser) InstructionType() int {
 func (p *Parser) Symbol() string {
 	l := p.getLine()
 
-	return strings.TrimSpace(l[1:])
+	return l[1:]
 }
 
 func (p *Parser) Comp() string {

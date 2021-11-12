@@ -32,9 +32,18 @@ func (a *Assembler) Assemble() []string {
 	return i
 }
 
+func (a *Assembler) loadSymbols() {
+
+}
+
 func (a *Assembler) assembleInstruction() string {
-	if a.p.InstructionType() == parser.A_INSTRUCTION || a.p.InstructionType() == parser.L_INSTRUCTION {
+	if a.p.InstructionType() == parser.L_INSTRUCTION {
+		return ""
+	}
+
+	if a.p.InstructionType() == parser.A_INSTRUCTION {
 		a, _ := strconv.Atoi(a.p.Symbol())
+		fmt.Printf("Symbol: %d\n", a)
 		return fmt.Sprintf("0%015b\n", a)
 	}
 
