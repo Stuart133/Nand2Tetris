@@ -46,8 +46,6 @@ func (a *Assembler) loadSymbols() {
 			i++
 		}
 	}
-
-	fmt.Printf("%v", a.t)
 }
 
 func (a *Assembler) assembleInstruction() string {
@@ -56,9 +54,7 @@ func (a *Assembler) assembleInstruction() string {
 	}
 
 	if a.p.InstructionType() == parser.A_INSTRUCTION {
-		a, _ := strconv.Atoi(a.p.Symbol())
-		fmt.Printf("Symbol: %d\n", a)
-		return fmt.Sprintf("0%015b\n", a)
+		return a.convertSymbol(a.p.Symbol())
 	}
 
 	d := code.Dest(a.p.Dest())
@@ -66,4 +62,14 @@ func (a *Assembler) assembleInstruction() string {
 	j := code.Jump(a.p.Jump())
 
 	return fmt.Sprintf("111%s%s%s\n", c, d, j)
+}
+
+func (a *Assembler) convertSymbol(s string) string {
+	addr, err := strconv.Atoi(s)
+	// If this isn't valid, we have a symbolic address
+	if err != nil {
+		addr = a.t.GetAddress(s)
+	}
+
+	return fmt.Sprintf("0%015b\n", addr)
 }

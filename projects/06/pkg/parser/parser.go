@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"io/ioutil"
 	"strings"
 )
@@ -67,7 +66,6 @@ func (p *Parser) Symbol() string {
 	if strings.HasPrefix(l, "@") {
 		return l[1:]
 	} else {
-		fmt.Println(l[1 : len(l)-1])
 		return l[1 : len(l)-1]
 	}
 }

@@ -3,7 +3,8 @@ package symbol
 import "fmt"
 
 type Table struct {
-	symbols map[string]int
+	symbols          map[string]int
+	newSymbolAddress int
 }
 
 func NewTable() Table {
@@ -17,6 +18,7 @@ func NewTable() Table {
 			"SCREEN": 16384,
 			"KBD":    24576,
 		},
+		newSymbolAddress: 16,
 	}
 
 	for i := 0; i < 16; i++ {
@@ -37,5 +39,11 @@ func (t *Table) Contains(s string) bool {
 }
 
 func (t *Table) GetAddress(s string) int {
+	_, v := t.symbols[s]
+	if !v {
+		t.symbols[s] = t.newSymbolAddress
+		t.newSymbolAddress++
+	}
+
 	return t.symbols[s]
 }
