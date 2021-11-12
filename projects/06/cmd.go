@@ -52,7 +52,7 @@ func assemble(p *parser.Parser, path string) error {
 
 func assembleInstruction(p *parser.Parser) string {
 	if p.InstructionType() == parser.A_INSTRUCTION || p.InstructionType() == parser.L_INSTRUCTION {
-		a, _ := strconv.Atoi(strings.TrimSpace(p.Symbol()))
+		a, _ := strconv.Atoi(p.Symbol())
 		return fmt.Sprintf("0%015b\n", a)
 	}
 

@@ -59,7 +59,7 @@ func (p *Parser) InstructionType() int {
 func (p *Parser) Symbol() string {
 	l := p.getLine()
 
-	return l[1:]
+	return strings.TrimSpace(l[1:])
 }
 
 func (p *Parser) Comp() string {
