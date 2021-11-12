@@ -21,9 +21,11 @@ func NewAssembler(p parser.Parser) Assembler {
 }
 
 func (a *Assembler) Assemble() []string {
+	a.loadSymbols()
+	a.p.Reset()
+
 	i := make([]string, 0)
 
-	i = append(i, a.assembleInstruction())
 	for a.p.HasMoreLines() {
 		a.p.Advance()
 		i = append(i, a.assembleInstruction())
@@ -33,7 +35,19 @@ func (a *Assembler) Assemble() []string {
 }
 
 func (a *Assembler) loadSymbols() {
+	i := 0
 
+	for a.p.HasMoreLines() {
+		a.p.Advance()
+
+		if a.p.InstructionType() == parser.L_INSTRUCTION {
+			a.t.AddEntry(a.p.Symbol(), i)
+		} else {
+			i++
+		}
+	}
+
+	fmt.Printf("%v", a.t)
 }
 
 func (a *Assembler) assembleInstruction() string {

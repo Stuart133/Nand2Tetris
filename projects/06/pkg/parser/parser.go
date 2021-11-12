@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 )
@@ -38,7 +39,7 @@ func Load(path string) (Parser, error) {
 
 	return Parser{
 		lines:    lines,
-		position: 0,
+		position: -1,
 	}, nil
 }
 
@@ -63,7 +64,12 @@ func (p *Parser) InstructionType() int {
 func (p *Parser) Symbol() string {
 	l := p.getLine()
 
-	return l[1:]
+	if strings.HasPrefix(l, "@") {
+		return l[1:]
+	} else {
+		fmt.Println(l[1 : len(l)-1])
+		return l[1 : len(l)-1]
+	}
 }
 
 func (p *Parser) Comp() string {
@@ -108,6 +114,10 @@ func (p *Parser) Advance() {
 	if p.HasMoreLines() {
 		p.position++
 	}
+}
+
+func (p *Parser) Reset() {
+	p.position = -1
 }
 
 func (p *Parser) HasMoreLines() bool {
