@@ -24,7 +24,7 @@ func Load(path string) (Parser, error) {
 
 	rawLines := strings.Split(string(content), "\n")
 
-	// In leiu of a full scanner pass remove comments/whitespace here
+	// In lieu of a full scanner pass remove comments/whitespace here
 	lines := make([]string, 0)
 	for i := range rawLines {
 		if !strings.HasPrefix(rawLines[i], "//") && !(len(strings.TrimSpace(rawLines[i])) == 0) {
