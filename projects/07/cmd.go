@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"vm-translator/pkg/parser"
 )
 
 func main() {
@@ -19,6 +21,6 @@ func main() {
 		fmt.Printf("Could not load file: %v", err)
 	}
 
-	rawLines := strings.Split(string(c), "\n")
-
+	l := strings.Split(string(c), "\n")
+	stmts := parser.Parse(l)
 }
