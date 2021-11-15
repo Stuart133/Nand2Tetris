@@ -31,7 +31,9 @@ func main() {
 
 	asm := assembly.Assemble(stmts)
 
-	oPath := fmt.Sprintf("%s.hack", strings.Split(getFilename(path), ".")[0])
+	fmt.Println(path[:len(path)-3])
+
+	oPath := fmt.Sprintf("%s.asm", path[:len(path)-3])
 	err = saveFile(oPath, asm)
 	if err != nil {
 		fmt.Printf("There was an error writing the the output file: %v\n", err)
@@ -51,10 +53,4 @@ func saveFile(path string, data string) error {
 	}
 
 	return nil
-}
-
-func getFilename(path string) string {
-	sp := strings.Split(path, "\\")
-
-	return sp[len(sp)-1]
 }

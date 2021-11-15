@@ -44,7 +44,7 @@ func buildSegment(segment string, i int) string {
 	case segment == "constant":
 		seg = []string{
 			fmt.Sprintf("@%d", i),
-			"D=M",
+			"D=A",
 		}
 	}
 
