@@ -1,6 +1,10 @@
 package parser
 
-import "strings"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 const (
 	ARITHMETIC = iota
@@ -19,16 +23,16 @@ const (
 )
 
 type Statement struct {
-	CommandType int
-	Arg1        string
-	Arg2        int
+	CommandType  int
+	Arg1         string
+	Arg2         int
+	RawStatement string
 }
 
-func Parse(rawLines []string) Statement {
-	// This overallocates somewhat - Probably fine
-	lines := make([]string, len(rawLines))
+func Parse(rawLines []string) []Statement {
+	lines := make([]string, 0)
 	for i := range rawLines {
-		if len(strings.TrimSpace(rawLines[i])) != 0 {
+		if !strings.HasPrefix(rawLines[i], "//") && len(strings.TrimSpace(rawLines[i])) != 0 {
 			// Remove any comments & whitespace
 			l := strings.Split(rawLines[i], "//")[0]
 			l = strings.TrimSpace(l)
@@ -37,21 +41,39 @@ func Parse(rawLines []string) Statement {
 		}
 	}
 
+	stmts := make([]Statement, len(lines))
 	for i := range lines {
-		cmd := strings.Split(lines[i], " ")
-		switch {
-		case cmd[0] == "push":
-			return Statement{
-				CommandType: PUSH,
-				Arg1:        cmd[1],
-			}
-		case cmd[0] == "add":
-			return Statement{
-				CommandType: ARITHMETIC,
-				Arg1:        ADD,
-			}
-		}
+		fmt.Println(lines[i])
+		stmts[i] = parseLine(lines[i])
 	}
 
-	return Statement{}
+	return stmts
+}
+
+func parseLine(l string) Statement {
+	cmd := strings.Split(l, " ")
+	switch {
+	case cmd[0] == "push":
+		return Statement{
+			CommandType:  PUSH,
+			Arg1:         cmd[1],
+			Arg2:         getIntArg(cmd[2]),
+			RawStatement: l,
+		}
+	case cmd[0] == "add":
+		return Statement{
+			CommandType:  ARITHMETIC,
+			Arg1:         ADD,
+			RawStatement: l,
+		}
+	default:
+		return Statement{}
+	}
+}
+
+// Yeah yeah I know we should handle errors properly
+func getIntArg(a string) int {
+	i, _ := strconv.Atoi(a)
+
+	return i
 }
