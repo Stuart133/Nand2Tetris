@@ -7,8 +7,7 @@ import (
 )
 
 const (
-	ARITHMETIC = iota
-	PUSH
+	PUSH = iota
 	POP
 	LABEL
 	GOTO
@@ -16,10 +15,7 @@ const (
 	FUNCTION
 	RETURN
 	CALL
-)
-
-const (
-	ADD = "add"
+	ADD
 )
 
 type Statement struct {
@@ -62,8 +58,7 @@ func parseLine(l string) Statement {
 		}
 	case cmd[0] == "add":
 		return Statement{
-			CommandType:  ARITHMETIC,
-			Arg1:         ADD,
+			CommandType:  ADD,
 			RawStatement: l,
 		}
 	default:

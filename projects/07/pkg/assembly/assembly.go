@@ -22,9 +22,26 @@ func getAssembly(s parser.Statement) string {
 	switch {
 	case s.CommandType == parser.PUSH:
 		o = append(o, buildPush(s.Arg1, s.Arg2))
+	case s.CommandType == parser.ADD:
+		o = append(o, buildAdd())
 	}
 
 	return strings.Join(o, "\n")
+}
+
+func buildAdd() string {
+	return strings.Join([]string{
+		"@SP",
+		"M=M-1",
+		"A=M",
+		"D=M",
+		"@SP",
+		"M=M-1",
+		"A=M",
+		"M=M+D",
+		"@SP",
+		"M=M+1",
+	}, "\n")
 }
 
 func buildPush(segment string, i int) string {
