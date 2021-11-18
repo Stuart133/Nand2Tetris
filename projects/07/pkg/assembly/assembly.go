@@ -36,7 +36,7 @@ func getAssembly(s parser.Statement) string {
 	case s.CommandType == parser.OR:
 		o = append(o, buildBinaryOperator("M=M|D"))
 	case s.CommandType == parser.NOT:
-		return ""
+		o = append(o, buildNot())
 	case s.CommandType == parser.EQUAL:
 		o = append(o, buildComp("JEQ"))
 	case s.CommandType == parser.GREATER:
@@ -82,6 +82,8 @@ func buildBinaryOperator(op string) string {
 func buildNegate() string {
 	return strings.Join([]string{
 		popValue(),
+		"M=-D",
+		spInc(),
 	}, "\n")
 }
 
@@ -100,6 +102,20 @@ func buildComp(comp string) string {
 	}, "\n")
 }
 
+func buildNot() string {
+	compCount++
+
+	return strings.Join([]string{
+		popValue(),
+		"M=0", // Set output to false - A false comp will overwrite
+		fmt.Sprintf("@COMP%d", compCount),
+		"D;JMP",
+		"M=-1",
+		fmt.Sprintf("(@COMP%d)", compCount),
+		spInc(),
+	}, "\n")
+}
+
 // Puts the top stack value into D & decrements the SP
 func popValue() string {
 	return strings.Join([]string{
@@ -113,13 +129,6 @@ func spInc() string {
 	return strings.Join([]string{
 		"@SP",
 		"M=M+1",
-	}, "\n")
-}
-
-func spDec() string {
-	return strings.Join([]string{
-		"@SP",
-		"M=M-1",
 	}, "\n")
 }
 
