@@ -110,6 +110,18 @@ func buildSegment(segment string, i int) string {
 			fmt.Sprintf("@%d", 5+i),
 			"D=A",
 		}
+	case segment == "pointer":
+		if i == 0 {
+			seg = []string{
+				"@THIS",
+				"D=A",
+			}
+		} else {
+			seg = []string{
+				"@THAT",
+				"D=A",
+			}
+		}
 	case segment == "local":
 		seg = []string{
 			buildAccess("@LCL", i),
