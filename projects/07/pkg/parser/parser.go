@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -47,7 +46,6 @@ func Parse(rawLines []string) []Statement {
 
 	stmts := make([]Statement, len(lines))
 	for i := range lines {
-		fmt.Println(lines[i])
 		stmts[i] = parseLine(lines[i])
 	}
 

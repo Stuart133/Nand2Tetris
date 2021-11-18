@@ -97,8 +97,10 @@ func buildComp(comp string) string {
 		"M=-1", // Set output to true - A false comp will overwrite
 		fmt.Sprintf("@COMP%d", compCount),
 		fmt.Sprintf("D;%s", comp),
+		"@SP",
+		"A=M-1",
 		"M=0", // No jump means false comp
-		fmt.Sprintf("(@COMP%d)", compCount),
+		fmt.Sprintf("(COMP%d)", compCount),
 	}, "\n")
 }
 
@@ -110,8 +112,9 @@ func buildNot() string {
 		"M=0", // Set output to false - A false comp will overwrite
 		fmt.Sprintf("@COMP%d", compCount),
 		"D;JMP",
+		"@SP",
 		"M=-1",
-		fmt.Sprintf("(@COMP%d)", compCount),
+		fmt.Sprintf("(COMP%d)", compCount),
 		spInc(),
 	}, "\n")
 }

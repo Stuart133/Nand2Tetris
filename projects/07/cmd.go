@@ -25,13 +25,7 @@ func main() {
 	l := strings.Split(string(c), "\n")
 	stmts := parser.Parse(l)
 
-	for i := range stmts {
-		fmt.Println(stmts[i])
-	}
-
 	asm := assembly.Assemble(stmts)
-
-	fmt.Println(path[:len(path)-3])
 
 	oPath := fmt.Sprintf("%s.asm", path[:len(path)-3])
 	err = saveFile(oPath, asm)
