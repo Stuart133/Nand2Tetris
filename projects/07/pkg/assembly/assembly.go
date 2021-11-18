@@ -25,6 +25,8 @@ func getAssembly(s parser.Statement) string {
 	switch {
 	case s.CommandType == parser.PUSH:
 		o = append(o, buildPush(s.Arg1, s.Arg2))
+	case s.CommandType == parser.POP:
+		o = append(o, buildPop(s.Arg1, s.Arg2))
 	case s.CommandType == parser.ADD:
 		o = append(o, buildBinaryOperator("M=M+D"))
 	case s.CommandType == parser.SUB:
@@ -48,14 +50,51 @@ func getAssembly(s parser.Statement) string {
 	return strings.Join(o, "\n")
 }
 
+func buildPop(segment string, i int) string {
+	return strings.Join([]string{
+		popValue(),
+		saveTmp(0),
+		buildSegment(segment, i),
+		saveTmp(1),
+		loadTmp(0, "D"),
+		loadTmp(1, "A"),
+		"M=D",
+	}, "\n")
+}
+
+func saveTmp(i int) string {
+	return strings.Join([]string{
+		fmt.Sprintf("@R%d", 13+i),
+		"M=D",
+	}, "\n")
+}
+
+func loadTmp(i int, r string) string {
+	return strings.Join([]string{
+		fmt.Sprintf("@R%d", 13+i),
+		fmt.Sprintf("%s=M", r),
+	}, "\n")
+}
+
 func buildPush(segment string, i int) string {
 	return strings.Join([]string{
-		buildSegment(segment, i),
+		buildLoadSegment(segment, i),
 		"@SP",
 		"A=M",
 		"M=D",
 		spInc(),
 	}, "\n")
+}
+
+func buildLoadSegment(segment string, i int) string {
+	var seg string
+	seg = buildSegment(segment, i)
+
+	if segment != "constant" {
+		seg += "\nD=M"
+	}
+
+	return seg
 }
 
 func buildSegment(segment string, i int) string {
@@ -66,9 +105,38 @@ func buildSegment(segment string, i int) string {
 			fmt.Sprintf("@%d", i),
 			"D=A",
 		}
+	case segment == "temp":
+		seg = []string{
+			fmt.Sprintf("@%d", 5+i),
+			"D=A",
+		}
+	case segment == "local":
+		seg = []string{
+			buildAccess("@LCL", i),
+		}
+	case segment == "argument":
+		seg = []string{
+			buildAccess("@ARG", i),
+		}
+	case segment == "this":
+		seg = []string{
+			buildAccess("@THIS", i),
+		}
+	case segment == "that":
+		seg = []string{
+			buildAccess("@THAT", i),
+		}
 	}
-
 	return strings.Join(seg, "\n")
+}
+
+func buildAccess(l string, i int) string {
+	return strings.Join([]string{
+		fmt.Sprintf("@%d", i),
+		"D=A",
+		l,
+		"AD=M+D",
+	}, "\n")
 }
 
 func buildBinaryOperator(op string) string {

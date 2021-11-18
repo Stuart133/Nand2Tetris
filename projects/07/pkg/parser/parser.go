@@ -62,6 +62,13 @@ func parseLine(l string) Statement {
 			Arg2:         getIntArg(cmd[2]),
 			RawStatement: l,
 		}
+	case cmd[0] == "pop":
+		return Statement{
+			CommandType:  POP,
+			Arg1:         cmd[1],
+			Arg2:         getIntArg(cmd[2]),
+			RawStatement: l,
+		}
 	case cmd[0] == "add":
 		return Statement{
 			CommandType:  ADD,
