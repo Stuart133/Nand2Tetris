@@ -30,13 +30,13 @@ func getAssembly(s parser.Statement) string {
 	case s.CommandType == parser.SUB:
 		o = append(o, buildBinaryOperator("M=M-D"))
 	case s.CommandType == parser.NEGATE:
-		o = append(o, buildNegate())
+		o = append(o, buildUnaryOperator("M=-D"))
 	case s.CommandType == parser.AND:
 		o = append(o, buildBinaryOperator("M=M&D"))
 	case s.CommandType == parser.OR:
 		o = append(o, buildBinaryOperator("M=M|D"))
 	case s.CommandType == parser.NOT:
-		o = append(o, buildNot())
+		o = append(o, buildUnaryOperator("M=!D"))
 	case s.CommandType == parser.EQUAL:
 		o = append(o, buildComp("JEQ"))
 	case s.CommandType == parser.GREATER:
@@ -79,10 +79,10 @@ func buildBinaryOperator(op string) string {
 	}, "\n")
 }
 
-func buildNegate() string {
+func buildUnaryOperator(op string) string {
 	return strings.Join([]string{
 		popValue(),
-		"M=-D",
+		op,
 		spInc(),
 	}, "\n")
 }
@@ -101,21 +101,6 @@ func buildComp(comp string) string {
 		"A=M-1",
 		"M=0", // No jump means false comp
 		fmt.Sprintf("(COMP%d)", compCount),
-	}, "\n")
-}
-
-func buildNot() string {
-	compCount++
-
-	return strings.Join([]string{
-		popValue(),
-		"M=0", // Set output to false - A false comp will overwrite
-		fmt.Sprintf("@COMP%d", compCount),
-		"D;JMP",
-		"@SP",
-		"M=-1",
-		fmt.Sprintf("(COMP%d)", compCount),
-		spInc(),
 	}, "\n")
 }
 
