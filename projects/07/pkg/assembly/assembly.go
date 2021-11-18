@@ -7,9 +7,11 @@ import (
 )
 
 var compCount = 0
+var staticMap map[int]int
 
 // Could probably use a string build type pattern here if string allocs are an issue
 func Assemble(s []parser.Statement) string {
+	staticMap = make(map[int]int)
 	var asm string
 	for i := range s {
 		asm += fmt.Sprintf("%s\n\n", getAssembly(s[i]))
@@ -98,51 +100,50 @@ func buildLoadSegment(segment string, i int) string {
 }
 
 func buildSegment(segment string, i int) string {
-	var seg []string
 	switch {
 	case segment == "constant":
-		seg = []string{
-			fmt.Sprintf("@%d", i),
-			"D=A",
-		}
+		return buildDirectAccess(fmt.Sprintf("@%d", i))
 	case segment == "temp":
-		seg = []string{
-			fmt.Sprintf("@%d", 5+i),
-			"D=A",
-		}
+		return buildDirectAccess(fmt.Sprintf("@%d", 5+i))
 	case segment == "pointer":
 		if i == 0 {
-			seg = []string{
-				"@THIS",
-				"D=A",
-			}
+			return buildDirectAccess("@THIS")
 		} else {
-			seg = []string{
-				"@THAT",
-				"D=A",
-			}
+			return buildDirectAccess("@THAT")
 		}
+	case segment == "static":
+		return buildDirectAccess(fmt.Sprintf("@Static%d", lookupStaticAddr(i)))
 	case segment == "local":
-		seg = []string{
-			buildAccess("@LCL", i),
-		}
+		return buildPointerAccess("@LCL", i)
 	case segment == "argument":
-		seg = []string{
-			buildAccess("@ARG", i),
-		}
+		return buildPointerAccess("@ARG", i)
 	case segment == "this":
-		seg = []string{
-			buildAccess("@THIS", i),
-		}
+		return buildPointerAccess("@THIS", i)
 	case segment == "that":
-		seg = []string{
-			buildAccess("@THAT", i),
-		}
+		return buildPointerAccess("@THAT", i)
+	default:
+		return ""
 	}
-	return strings.Join(seg, "\n")
 }
 
-func buildAccess(l string, i int) string {
+func lookupStaticAddr(i int) int {
+	_, v := staticMap[i]
+
+	if !v {
+		staticMap[i] = len(staticMap)
+	}
+
+	return staticMap[i]
+}
+
+func buildDirectAccess(a string) string {
+	return strings.Join([]string{
+		a,
+		"D=A",
+	}, "\n")
+}
+
+func buildPointerAccess(l string, i int) string {
 	return strings.Join([]string{
 		fmt.Sprintf("@%d", i),
 		"D=A",
