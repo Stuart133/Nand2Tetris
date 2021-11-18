@@ -28,7 +28,7 @@ func getAssembly(s parser.Statement) string {
 	case s.CommandType == parser.ADD:
 		o = append(o, buildBinaryOperator("M=M+D"))
 	case s.CommandType == parser.SUB:
-		o = append(o, buildBinaryOperator("M=D-M"))
+		o = append(o, buildBinaryOperator("M=M-D"))
 	case s.CommandType == parser.NEGATE:
 		o = append(o, buildNegate())
 	case s.CommandType == parser.AND:
@@ -93,7 +93,7 @@ func buildComp(comp string) string {
 	return strings.Join([]string{
 		popValue(),
 		"A=A-1",
-		"D=D-M",
+		"D=M-D",
 		"M=-1", // Set output to true - A false comp will overwrite
 		fmt.Sprintf("@COMP%d", compCount),
 		fmt.Sprintf("D;%s", comp),

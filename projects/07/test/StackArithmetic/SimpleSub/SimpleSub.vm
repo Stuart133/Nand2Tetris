@@ -1,0 +1,3 @@
+push constant 34
+push constant 4
+sub
