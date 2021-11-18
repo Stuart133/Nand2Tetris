@@ -12,6 +12,7 @@ func Assemble(s []parser.Statement) string {
 	for i := range s {
 		asm += fmt.Sprintf("%s\n\n", getAssembly(s[i]))
 	}
+	asm += endProgram()
 
 	return asm
 }
@@ -23,25 +24,26 @@ func getAssembly(s parser.Statement) string {
 	case s.CommandType == parser.PUSH:
 		o = append(o, buildPush(s.Arg1, s.Arg2))
 	case s.CommandType == parser.ADD:
-		o = append(o, buildAdd())
+		o = append(o, buildBinaryOperator("M=M+D"))
+	case s.CommandType == parser.SUB:
+		o = append(o, buildBinaryOperator("M=D-M"))
+	case s.CommandType == parser.NEGATE:
+		return ""
+	case s.CommandType == parser.AND:
+		o = append(o, buildBinaryOperator("M=M&D"))
+	case s.CommandType == parser.OR:
+		o = append(o, buildBinaryOperator("M=M|D"))
+	case s.CommandType == parser.NOT:
+		return ""
+	case s.CommandType == parser.EQUAL:
+		//o = append(o, buildBinaryOperator("M=M|D"))
+	case s.CommandType == parser.GREATER:
+		//o = append(o, buildBinaryOperator("M=M|D"))
+	case s.CommandType == parser.LESS:
+		//o = append(o, buildBinaryOperator("M=M|D"))
 	}
 
 	return strings.Join(o, "\n")
-}
-
-func buildAdd() string {
-	return strings.Join([]string{
-		"@SP",
-		"M=M-1",
-		"A=M",
-		"D=M",
-		"@SP",
-		"M=M-1",
-		"A=M",
-		"M=M+D",
-		"@SP",
-		"M=M+1",
-	}, "\n")
 }
 
 func buildPush(segment string, i int) string {
@@ -50,8 +52,17 @@ func buildPush(segment string, i int) string {
 		"@SP",
 		"A=M",
 		"M=D",
-		"@SP",
-		"M=M+1",
+		spInc(),
+	}, "\n")
+}
+
+func buildBinaryOperator(op string) string {
+	return strings.Join([]string{
+		popValue(),
+		spDec(),
+		"A=M",
+		op,
+		spInc(),
 	}, "\n")
 }
 
@@ -66,4 +77,35 @@ func buildSegment(segment string, i int) string {
 	}
 
 	return strings.Join(seg, "\n")
+}
+
+// Puts the top stack value into D & decrements the SP
+func popValue() string {
+	return strings.Join([]string{
+		spDec(),
+		"A=M",
+		"D=M",
+	}, "\n")
+}
+
+func spInc() string {
+	return strings.Join([]string{
+		"@SP",
+		"M=M+1",
+	}, "\n")
+}
+
+func spDec() string {
+	return strings.Join([]string{
+		"@SP",
+		"M=M-1",
+	}, "\n")
+}
+
+func endProgram() string {
+	return strings.Join([]string{
+		"(END)",
+		"@END",
+		"0;JMP",
+	}, "\n")
 }

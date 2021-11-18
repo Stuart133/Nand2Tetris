@@ -16,6 +16,14 @@ const (
 	RETURN
 	CALL
 	ADD
+	SUB
+	NEGATE
+	AND
+	OR
+	NOT
+	EQUAL
+	GREATER
+	LESS
 )
 
 type Statement struct {
@@ -61,6 +69,47 @@ func parseLine(l string) Statement {
 			CommandType:  ADD,
 			RawStatement: l,
 		}
+	case cmd[0] == "sub":
+		return Statement{
+			CommandType:  SUB,
+			RawStatement: l,
+		}
+	case cmd[0] == "neg":
+		return Statement{
+			CommandType:  NEGATE,
+			RawStatement: l,
+		}
+	case cmd[0] == "and":
+		return Statement{
+			CommandType:  AND,
+			RawStatement: l,
+		}
+	case cmd[0] == "or":
+		return Statement{
+			CommandType:  OR,
+			RawStatement: l,
+		}
+	case cmd[0] == "not":
+		return Statement{
+			CommandType:  NOT,
+			RawStatement: l,
+		}
+	case cmd[0] == "eq":
+		return Statement{
+			CommandType:  EQUAL,
+			RawStatement: l,
+		}
+	case cmd[0] == "gt":
+		return Statement{
+			CommandType:  GREATER,
+			RawStatement: l,
+		}
+	case cmd[0] == "lt":
+		return Statement{
+			CommandType:  LESS,
+			RawStatement: l,
+		}
+
 	default:
 		return Statement{}
 	}
