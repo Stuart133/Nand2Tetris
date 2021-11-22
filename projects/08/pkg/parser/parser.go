@@ -10,7 +10,7 @@ const (
 	POP
 	LABEL
 	GOTO
-	IF
+	IF_GOTO
 	FUNCTION
 	RETURN
 	CALL
@@ -67,6 +67,24 @@ func parseLine(l string) Statement {
 			CommandType:  POP,
 			Arg1:         cmd[1],
 			Arg2:         getIntArg(cmd[2]),
+			RawStatement: l,
+		}
+	case cmd[0] == "label":
+		return Statement{
+			CommandType:  LABEL,
+			Arg1:         cmd[1],
+			RawStatement: l,
+		}
+	case cmd[0] == "goto":
+		return Statement{
+			CommandType:  GOTO,
+			Arg1:         cmd[1],
+			RawStatement: l,
+		}
+	case cmd[0] == "if-goto":
+		return Statement{
+			CommandType:  IF_GOTO,
+			Arg1:         cmd[1],
 			RawStatement: l,
 		}
 	case cmd[0] == "add":
