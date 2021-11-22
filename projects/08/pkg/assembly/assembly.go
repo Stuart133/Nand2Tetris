@@ -7,11 +7,9 @@ import (
 )
 
 var compCount = 0
-var staticMap map[int]int
 
 // Could probably use a string build type pattern here if string allocs are an issue
 func Assemble(s []parser.Statement) string {
-	staticMap = make(map[int]int)
 	var asm string
 	for i := range s {
 		asm += fmt.Sprintf("%s\n\n", getAssembly(s[i]))
@@ -29,6 +27,12 @@ func getAssembly(s parser.Statement) string {
 		o = append(o, buildPush(s.Arg1, s.Arg2))
 	case s.CommandType == parser.POP:
 		o = append(o, buildPop(s.Arg1, s.Arg2))
+	case s.CommandType == parser.LABEL:
+		o = append(o, fmt.Sprintf("(%s)", s.Arg1))
+	case s.CommandType == parser.GOTO:
+		o = append(o, buildGoto(s.Arg1))
+	case s.CommandType == parser.IF_GOTO:
+		o = append(o, buildIfGoto(s.Arg1))
 	case s.CommandType == parser.ADD:
 		o = append(o, buildBinaryOperator("M=M+D"))
 	case s.CommandType == parser.SUB:
@@ -112,7 +116,7 @@ func buildSegment(segment string, i int) string {
 			return buildDirectAccess("@THAT")
 		}
 	case segment == "static":
-		return buildDirectAccess(fmt.Sprintf("@Static%d", lookupStaticAddr(i)))
+		return buildDirectAccess(fmt.Sprintf("@%s%d", segment, i))
 	case segment == "local":
 		return buildPointerAccess("@LCL", i)
 	case segment == "argument":
@@ -124,16 +128,6 @@ func buildSegment(segment string, i int) string {
 	default:
 		return ""
 	}
-}
-
-func lookupStaticAddr(i int) int {
-	_, v := staticMap[i]
-
-	if !v {
-		staticMap[i] = len(staticMap)
-	}
-
-	return staticMap[i]
 }
 
 func buildDirectAccess(a string) string {
@@ -149,6 +143,21 @@ func buildPointerAccess(l string, i int) string {
 		"D=A",
 		l,
 		"AD=M+D",
+	}, "\n")
+}
+
+func buildIfGoto(l string) string {
+	return strings.Join([]string{
+		popValue(),
+		fmt.Sprintf("@%s", l),
+		"D;JNE",
+	}, "\n")
+}
+
+func buildGoto(l string) string {
+	return strings.Join([]string{
+		fmt.Sprintf("@%s", l),
+		"0;JMP",
 	}, "\n")
 }
 
