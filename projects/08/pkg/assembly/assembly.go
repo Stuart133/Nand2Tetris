@@ -34,8 +34,10 @@ func getAssembly(s parser.Statement) string {
 		o = append(o, buildGoto(s.Arg1))
 	case s.CommandType == parser.IF_GOTO:
 		o = append(o, buildIfGoto(s.Arg1))
-	// case s.CommandType == parser.FUNCTION:
-	// 	o = append(o, build)
+	case s.CommandType == parser.FUNCTION:
+		o = append(o, buildFunction(s.Arg1, s.Arg2))
+	case s.CommandType == parser.RETURN:
+		o = append(o, buildReturn())
 	case s.CommandType == parser.ADD:
 		o = append(o, buildBinaryOperator("M=M+D"))
 	case s.CommandType == parser.SUB:
@@ -161,6 +163,66 @@ func buildGoto(l string) string {
 	return strings.Join([]string{
 		fmt.Sprintf("@%s", l),
 		"0;JMP",
+	}, "\n")
+}
+
+func buildFunction(n string, nArgs int) string {
+	asm := []string{
+		fmt.Sprintf("(%s)", n),
+	}
+	for i := 0; i < nArgs; i++ {
+		asm = append(asm, buildSegment("local", i))
+		asm = append(asm, "M=0")
+	}
+
+	return strings.Join(asm, "\n")
+}
+
+func buildReturn() string {
+	return strings.Join([]string{
+		// Put the return value into arg 0
+		popValue(),
+		"@ARG",
+		"A=M",
+		"M=D",
+		// Set the stack pointer to arg 1
+		"D=A+1",
+		"@SP",
+		"M=D",
+		// Restore THAT
+		"@LCL",
+		"A=M",
+		"A=A-1",
+		"D=M",
+		"@THAT",
+		"M=D",
+		// Restore THIS
+		"@2",
+		"D=A",
+		"@LCL",
+		"A=M",
+		"A=A-D",
+		"D=M",
+		"@THIS",
+		"M=D",
+		// Restore ARG
+		"@3",
+		"D=A",
+		"@LCL",
+		"A=M",
+		"A=A-D",
+		"D=M",
+		"@ARG",
+		"M=D",
+		// Restore LCL
+		"@4",
+		"D=A",
+		"@LCL",
+		"A=M",
+		"A=A-D",
+		"D=M",
+		"@LCL",
+		"M=D",
 	}, "\n")
 }
 
