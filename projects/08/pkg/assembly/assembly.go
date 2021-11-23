@@ -189,39 +189,28 @@ func buildReturn() string {
 		"D=A+1",
 		"@SP",
 		"M=D",
-		// Restore THAT
+		// Restore previous call frame
 		"@LCL",
 		"A=M",
 		"A=A-1",
 		"D=M",
 		"@THAT",
 		"M=D",
-		// Restore THIS
-		"@2",
+		buildRestorePointer("THIS", 2),
+		buildRestorePointer("ARG", 3),
+		buildRestorePointer("LCL", 4),
+	}, "\n")
+}
+
+func buildRestorePointer(seg string, i int) string {
+	return strings.Join([]string{
+		fmt.Sprintf("@%d", i),
 		"D=A",
 		"@LCL",
 		"A=M",
 		"A=A-D",
 		"D=M",
-		"@THIS",
-		"M=D",
-		// Restore ARG
-		"@3",
-		"D=A",
-		"@LCL",
-		"A=M",
-		"A=A-D",
-		"D=M",
-		"@ARG",
-		"M=D",
-		// Restore LCL
-		"@4",
-		"D=A",
-		"@LCL",
-		"A=M",
-		"A=A-D",
-		"D=M",
-		"@LCL",
+		fmt.Sprintf("@%s", seg),
 		"M=D",
 	}, "\n")
 }
