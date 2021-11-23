@@ -7,14 +7,15 @@ import (
 )
 
 var compCount = 0
+var fName = ""
 
 // Could probably use a string build type pattern here if string allocs are an issue
-func Assemble(s []parser.Statement) string {
+func Assemble(s []parser.Statement, fname string) string {
+	fName = fname
 	var asm string
 	for i := range s {
 		asm += fmt.Sprintf("%s\n\n", getAssembly(s[i]))
 	}
-	asm += endProgram()
 
 	return asm
 }
@@ -33,6 +34,8 @@ func getAssembly(s parser.Statement) string {
 		o = append(o, buildGoto(s.Arg1))
 	case s.CommandType == parser.IF_GOTO:
 		o = append(o, buildIfGoto(s.Arg1))
+	// case s.CommandType == parser.FUNCTION:
+	// 	o = append(o, build)
 	case s.CommandType == parser.ADD:
 		o = append(o, buildBinaryOperator("M=M+D"))
 	case s.CommandType == parser.SUB:
@@ -116,7 +119,7 @@ func buildSegment(segment string, i int) string {
 			return buildDirectAccess("@THAT")
 		}
 	case segment == "static":
-		return buildDirectAccess(fmt.Sprintf("@%s%d", segment, i))
+		return buildDirectAccess(fmt.Sprintf("@%s.%d", fName, i))
 	case segment == "local":
 		return buildPointerAccess("@LCL", i)
 	case segment == "argument":
@@ -210,7 +213,7 @@ func spInc() string {
 	}, "\n")
 }
 
-func endProgram() string {
+func EndProgram() string {
 	return strings.Join([]string{
 		"(END)",
 		"@END",

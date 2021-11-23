@@ -87,6 +87,24 @@ func parseLine(l string) Statement {
 			Arg1:         cmd[1],
 			RawStatement: l,
 		}
+	case cmd[0] == "call":
+		return Statement{
+			CommandType:  CALL,
+			Arg1:         cmd[1],
+			RawStatement: l,
+		}
+	case cmd[0] == "function":
+		return Statement{
+			CommandType:  FUNCTION,
+			Arg1:         cmd[1],
+			Arg2:         getIntArg(cmd[2]),
+			RawStatement: l,
+		}
+	case cmd[0] == "return":
+		return Statement{
+			CommandType:  RETURN,
+			RawStatement: l,
+		}
 	case cmd[0] == "add":
 		return Statement{
 			CommandType:  ADD,

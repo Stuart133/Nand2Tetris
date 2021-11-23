@@ -12,22 +12,31 @@ import (
 
 func main() {
 	path := os.Args[1]
-	if !strings.HasSuffix(path, ".vm") {
-		fmt.Println("File specified must be a *.vm file")
-		os.Exit(1)
-	}
-
-	c, err := ioutil.ReadFile(path)
+	fi, err := ioutil.ReadDir(path)
 	if err != nil {
-		fmt.Printf("Could not load file: %v", err)
+		fmt.Printf("Could not read directory: %v", err)
 	}
 
-	l := strings.Split(string(c), "\n")
-	stmts := parser.Parse(l)
+	asm := ""
+	for _, f := range fi {
+		if !strings.HasSuffix(f.Name(), ".vm") {
+			continue
+		}
 
-	asm := assembly.Assemble(stmts)
+		c, err := ioutil.ReadFile(fmt.Sprintf("%s\\%s", path, f.Name()))
+		if err != nil {
+			fmt.Printf("Could not load file: %v", err)
+		}
 
-	oPath := fmt.Sprintf("%s.asm", path[:len(path)-3])
+		l := strings.Split(string(c), "\n")
+		stmts := parser.Parse(l)
+
+		asm += assembly.Assemble(stmts, strings.Split(f.Name(), ".")[0])
+	}
+
+	asm += assembly.EndProgram()
+
+	oPath := fmt.Sprintf("%s\\%s.asm", path, getFileName(path))
 	err = saveFile(oPath, asm)
 	if err != nil {
 		fmt.Printf("There was an error writing the the output file: %v\n", err)
@@ -47,4 +56,10 @@ func saveFile(path string, data string) error {
 	}
 
 	return nil
+}
+
+func getFileName(path string) string {
+	sp := strings.Split(path, "\\")
+
+	return sp[len(sp)-1]
 }
