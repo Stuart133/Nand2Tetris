@@ -102,10 +102,7 @@ func loadTmp(i int, r string) string {
 func buildPush(segment string, i int) string {
 	return strings.Join([]string{
 		buildLoadSegment(segment, i),
-		"@SP",
-		"A=M",
-		"M=D",
-		spInc(),
+		pushValue(),
 	}, "\n")
 }
 
@@ -190,6 +187,12 @@ func buildFunction(n string, nArgs int) string {
 	return strings.Join(asm, "\n")
 }
 
+// func buildCall() string {
+// 	return strings.Join([]string{
+// 		pushValue(),
+// 	}, "\n")
+// }
+
 func buildReturn() string {
 	return strings.Join([]string{
 		// Put the return value into arg 0
@@ -266,6 +269,16 @@ func popValue() string {
 		"@SP",
 		"AM=M-1",
 		"D=M",
+	}, "\n")
+}
+
+// Pushes D to the stack & increments the SP
+func pushValue() string {
+	return strings.Join([]string{
+		"@SP",
+		"A=M",
+		"M=D",
+		spInc(),
 	}, "\n")
 }
 
