@@ -243,6 +243,14 @@ func buildCall(fn string, n int) string {
 
 func buildReturn() string {
 	return strings.Join([]string{
+		// Get the return address
+		"@5",
+		"D=A",
+		"@LCL",
+		"A=M",
+		"A=A-D",
+		"D=M",
+		saveTmp(0),
 		// Put the return value into arg 0
 		popValue(),
 		"@ARG",
@@ -262,6 +270,9 @@ func buildReturn() string {
 		buildRestorePointer("THIS", 2),
 		buildRestorePointer("ARG", 3),
 		buildRestorePointer("LCL", 4),
+		// Jump to return address
+		loadTmp(0, "A"),
+		"0;JMP",
 	}, "\n")
 }
 
