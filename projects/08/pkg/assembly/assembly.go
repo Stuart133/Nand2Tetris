@@ -8,6 +8,8 @@ import (
 
 var compCount = 0
 var fName = ""
+var currentFn = "" // A hack - But it does work
+var callCount = 0  // Also a hack
 
 // Could probably use a string build type pattern here if string allocs are an issue
 func Assemble(s []parser.Statement, fname string) string {
@@ -21,14 +23,19 @@ func Assemble(s []parser.Statement, fname string) string {
 }
 
 func AssembleInit() string {
+	currentFn = "sys.Init"
+
 	return strings.Join([]string{
-		"@256",
+		"@20",
 		"D=A",
 		"@SP",
 		"M=D",
-		"",
-		"",
 		// Call Sys.init
+		"@Sys.init",
+		"0;JMP",
+
+		"",
+		"",
 	}, "\n")
 }
 
@@ -41,13 +48,15 @@ func getAssembly(s parser.Statement) string {
 	case s.CommandType == parser.POP:
 		o = append(o, buildPop(s.Arg1, s.Arg2))
 	case s.CommandType == parser.LABEL:
-		o = append(o, fmt.Sprintf("(%s)", s.Arg1))
+		o = append(o, fmt.Sprintf("(%s$%s)", currentFn, s.Arg1))
 	case s.CommandType == parser.GOTO:
 		o = append(o, buildGoto(s.Arg1))
 	case s.CommandType == parser.IF_GOTO:
 		o = append(o, buildIfGoto(s.Arg1))
 	case s.CommandType == parser.FUNCTION:
 		o = append(o, buildFunction(s.Arg1, s.Arg2))
+	case s.CommandType == parser.CALL:
+		o = append(o, buildCall(s.Arg1, s.Arg2))
 	case s.CommandType == parser.RETURN:
 		o = append(o, buildReturn())
 	case s.CommandType == parser.ADD:
@@ -163,19 +172,20 @@ func buildPointerAccess(l string, i int) string {
 func buildIfGoto(l string) string {
 	return strings.Join([]string{
 		popValue(),
-		fmt.Sprintf("@%s", l),
+		fmt.Sprintf("@%s$%s", currentFn, l),
 		"D;JNE",
 	}, "\n")
 }
 
 func buildGoto(l string) string {
 	return strings.Join([]string{
-		fmt.Sprintf("@%s", l),
+		fmt.Sprintf("@%s$%s", currentFn, l),
 		"0;JMP",
 	}, "\n")
 }
 
 func buildFunction(n string, nArgs int) string {
+	currentFn = n
 	asm := []string{
 		fmt.Sprintf("(%s)", n),
 	}
@@ -187,11 +197,46 @@ func buildFunction(n string, nArgs int) string {
 	return strings.Join(asm, "\n")
 }
 
-// func buildCall() string {
-// 	return strings.Join([]string{
-// 		pushValue(),
-// 	}, "\n")
-// }
+func buildCall(fn string, n int) string {
+	asm := strings.Join([]string{
+		// Push return addr
+		fmt.Sprintf("@%s$ret.%d", currentFn, callCount),
+		"D=A",
+		pushValue(),
+		// Push caller memory values
+		"@LCL",
+		"D=M",
+		pushValue(),
+		"@ARG",
+		"D=M",
+		pushValue(),
+		"@THIS",
+		"D=M",
+		pushValue(),
+		"@THAT",
+		"D=M",
+		pushValue(),
+		// Reposition ARG
+		fmt.Sprintf("@%d", n+5),
+		"D=A",
+		"@SP",
+		"D=M-D",
+		"@ARG",
+		"M=D",
+		// Reposition LCL
+		"@SP",
+		"D=M",
+		"@LCL",
+		"M=D",
+		// Jump to callee
+		fmt.Sprintf("@%s", fn),
+		"0;JMP",
+		// Return addr
+		fmt.Sprintf("(%s$ret.%d)", currentFn, callCount),
+	}, "\n")
+
+	return asm
+}
 
 func buildReturn() string {
 	return strings.Join([]string{
