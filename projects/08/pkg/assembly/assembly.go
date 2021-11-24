@@ -26,7 +26,7 @@ func AssembleInit() string {
 	currentFn = "sys.Init"
 
 	return strings.Join([]string{
-		"@20",
+		"@256",
 		"D=A",
 		"@SP",
 		"M=D",
@@ -186,6 +186,8 @@ func buildGoto(l string) string {
 
 func buildFunction(n string, nArgs int) string {
 	currentFn = n
+	callCount = 0
+
 	asm := []string{
 		fmt.Sprintf("(%s)", n),
 	}
@@ -235,6 +237,7 @@ func buildCall(fn string, n int) string {
 		fmt.Sprintf("(%s$ret.%d)", currentFn, callCount),
 	}, "\n")
 
+	callCount++
 	return asm
 }
 
