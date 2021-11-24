@@ -20,6 +20,18 @@ func Assemble(s []parser.Statement, fname string) string {
 	return asm
 }
 
+func AssembleInit() string {
+	return strings.Join([]string{
+		"@256",
+		"D=A",
+		"@SP",
+		"M=D",
+		"",
+		"",
+		// Call Sys.init
+	}, "\n")
+}
+
 func getAssembly(s parser.Statement) string {
 	o := make([]string, 0)
 	o = append(o, fmt.Sprintf("//%s", s.RawStatement))

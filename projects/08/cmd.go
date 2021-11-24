@@ -17,7 +17,7 @@ func main() {
 		fmt.Printf("Could not read directory: %v", err)
 	}
 
-	asm := ""
+	asm := assembly.AssembleInit()
 	for _, f := range fi {
 		if !strings.HasSuffix(f.Name(), ".vm") {
 			continue
@@ -33,8 +33,6 @@ func main() {
 
 		asm += assembly.Assemble(stmts, strings.Split(f.Name(), ".")[0])
 	}
-
-	asm += assembly.EndProgram()
 
 	oPath := fmt.Sprintf("%s\\%s.asm", path, getFileName(path))
 	err = saveFile(oPath, asm)
