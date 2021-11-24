@@ -31,9 +31,12 @@ func AssembleInit() string {
 		"@SP",
 		"M=D",
 		// Call Sys.init
-		"@Sys.init",
-		"0;JMP",
+		buildCall("Sys.init", 0),
 
+		// Guard loop (in case we ever return from Sys.init)
+		"(BADTIMES)",
+		"@BADTIMES",
+		"0;JMP",
 		"",
 		"",
 	}, "\n")
