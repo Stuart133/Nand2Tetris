@@ -197,6 +197,7 @@ func buildFunction(n string, nArgs int) string {
 	for i := 0; i < nArgs; i++ {
 		asm = append(asm, buildSegment("local", i))
 		asm = append(asm, "M=0")
+		asm = append(asm, spInc())
 	}
 
 	return strings.Join(asm, "\n")
