@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	path := os.Args[0]
+	path := os.Args[1]
 
 	if strings.HasSuffix(path, ".jack") {
 		c, err := ioutil.ReadFile(path)
@@ -18,6 +18,8 @@ func main() {
 			os.Exit(1)
 		}
 
+		fmt.Println(string(c))
+
 		s := scanner.NewScanner(string(c))
 		tokens := s.ScanTokens()
 
@@ -25,5 +27,4 @@ func main() {
 			fmt.Printf("%v\n", t)
 		}
 	}
-
 }

@@ -125,9 +125,9 @@ func (s *Scanner) scanToken() {
 		s.addNamedToken(SYMBOL, "symbol")
 	case c == '/':
 		if s.match('/') {
-			// Comment
+			s.comment()
 		} else if s.match('*') {
-			// Block comment
+			s.blockComment()
 		} else {
 			s.addNamedToken(SYMBOL, "symbol")
 		}
@@ -176,6 +176,25 @@ func isAlpaNumeric(c byte) bool {
 	return isDigit(c) || isAlpha(c)
 }
 
+func (s *Scanner) comment() {
+	// Keep advancing until we hit the new line or EOF
+	for !s.isAtEnd() && !s.match('\n') {
+		s.advance()
+	}
+}
+
+func (s *Scanner) blockComment() {
+	// Keep advancing until we hit the block closer of EOF
+	// Currnetly does not support nested block comments
+	for !s.isAtEnd() && !(s.peek() == '*' && s.peekNext() == '/') {
+		s.advance()
+	}
+
+	// Consume the block closer
+	s.advance()
+	s.advance()
+}
+
 func (s *Scanner) numeric() {
 	// Keep advancing until the next character is not a numeric
 	for isDigit(s.peek()) {
@@ -214,6 +233,10 @@ func (s *Scanner) advance() byte {
 
 func (s *Scanner) peek() byte {
 	return s.source[s.current]
+}
+
+func (s *Scanner) peekNext() byte {
+	return s.source[s.current+1]
 }
 
 func (s *Scanner) match(c byte) bool {
