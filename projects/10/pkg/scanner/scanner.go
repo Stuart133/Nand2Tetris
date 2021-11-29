@@ -121,7 +121,7 @@ func (s *Scanner) scanToken() {
 		s.addNamedToken(SYMBOL, "symbol")
 	case c == '=':
 		s.addNamedToken(SYMBOL, "symbol")
-	case c == '-':
+	case c == '~':
 		s.addNamedToken(SYMBOL, "symbol")
 	case c == '/':
 		if s.match('/') {
