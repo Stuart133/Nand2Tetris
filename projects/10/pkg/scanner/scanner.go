@@ -88,48 +88,48 @@ func (s *Scanner) scanToken() {
 
 	switch {
 	case c == '{':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '}':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '(':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == ')':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '[':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == ']':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '.':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == ',':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == ';':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '+':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '-':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '*':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '&':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '|':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '<':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '>':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '=':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '~':
-		s.addNamedToken(SYMBOL, "symbol")
+		s.addToken(SYMBOL, "symbol")
 	case c == '/':
 		if s.match('/') {
 			s.comment()
 		} else if s.match('*') {
 			s.blockComment()
 		} else {
-			s.addNamedToken(SYMBOL, "symbol")
+			s.addToken(SYMBOL, "symbol")
 		}
 
 	// Ignore whitespace
@@ -140,19 +140,19 @@ func (s *Scanner) scanToken() {
 
 	case c == '"':
 		s.string()
-		s.addNamedToken(STRING_CONST, "stringConstant")
+		s.addToken(STRING_CONST, "stringConstant")
 
 	default:
 		if isDigit(c) {
 			s.numeric()
-			s.addNamedToken(INT_CONST, "integerConstant")
+			s.addToken(INT_CONST, "integerConstant")
 		} else if isAlpha(c) {
 			s.identifier()
 		}
 	}
 }
 
-func (s *Scanner) addNamedToken(t int, name string) {
+func (s *Scanner) addToken(t int, name string) {
 	lex := s.source[s.start:s.current]
 
 	// Quick hack to remove quotes from string constants
@@ -223,9 +223,9 @@ func (s *Scanner) identifier() {
 	i := s.source[s.start:s.current]
 	t, v := s.reserved[i]
 	if v {
-		s.addNamedToken(t, "keyword")
+		s.addToken(t, "keyword")
 	} else {
-		s.addNamedToken(IDENTIFIER, "identifier")
+		s.addToken(IDENTIFIER, "identifier")
 	}
 }
 

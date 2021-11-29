@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compiler/pkg/parser"
 	"compiler/pkg/scanner"
 	"fmt"
 	"io/ioutil"
@@ -28,8 +29,13 @@ func main() {
 
 		s := scanner.NewScanner(string(c))
 		tokens := s.ScanTokens()
+		fmt.Println(f.Name())
 
-		oPath := fmt.Sprintf("%s\\%sT-gen.xml", path, getFileName(f.Name()))
+		p := parser.NewParser(tokens)
+		stmts := p.Parse()
+		fmt.Println(stmts)
+
+		oPath := fmt.Sprintf("%s\\%s-gen.xml", path, getFileName(f.Name()))
 		err = saveFile(oPath, tokens)
 		if err != nil {
 			fmt.Printf("There was an error writing the the output file: %v\n", err)
