@@ -155,6 +155,11 @@ func (s *Scanner) scanToken() {
 func (s *Scanner) addNamedToken(t int, name string) {
 	lex := s.source[s.start:s.current]
 
+	// Quick hack to remove quotes from string constants
+	if t == STRING_CONST {
+		lex = s.source[s.start+1 : s.current-1]
+	}
+
 	s.Tokens = append(s.Tokens, Token{
 		Type:     t,
 		TypeName: name,
