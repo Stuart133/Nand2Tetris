@@ -52,6 +52,11 @@ func (p *Parser) class() SyntaxNode {
 		n.Nodes = append(n.Nodes, p.classVarDec())
 	}
 
+	for !p.isAtEnd() &&
+		(p.peek().Type == scanner.CONSTRUCTOR || p.peek().Type == scanner.FUNCTION || p.peek().Type == scanner.METHOD) {
+		n.Nodes = append(n.Nodes, p.subroutineDec())
+	}
+
 	return n
 }
 
@@ -70,6 +75,31 @@ func (p *Parser) classVarDec() SyntaxNode {
 	}
 
 	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ";"))
+
+	return n
+}
+
+func (p *Parser) subroutineDec() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "subroutineDec",
+		Nodes:    []SyntaxNode{},
+	}
+
+	n.Nodes = append(n.Nodes, p.consume(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD))
+	n.Nodes = append(n.Nodes, p.consume(scanner.VOID, scanner.IDENTIFIER))
+	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "("))
+	n.Nodes = append(n.Nodes, p.parameterList())
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ")"))
+
+	return n
+}
+
+func (p *Parser) parameterList() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "parameterList",
+		Nodes:    []SyntaxNode{},
+	}
 
 	return n
 }
