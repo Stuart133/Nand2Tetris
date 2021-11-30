@@ -67,14 +67,7 @@ func (p *Parser) classVarDec() SyntaxNode {
 	}
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.STATIC, scanner.FIELD))
-	n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
-	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-
-	for !p.isAtEnd() && p.matchWithLex(scanner.SYMBOL, ",") {
-		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-	}
-
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ";"))
+	n = p.varInner(n)
 
 	return n
 }
@@ -91,6 +84,7 @@ func (p *Parser) subroutineDec() SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "("))
 	n.Nodes = append(n.Nodes, p.parameterList())
 	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ")"))
+	n.Nodes = append(n.Nodes, p.subroutineBody())
 
 	return n
 }
@@ -100,6 +94,94 @@ func (p *Parser) parameterList() SyntaxNode {
 		TypeName: "parameterList",
 		Nodes:    []SyntaxNode{},
 	}
+
+	if p.peek().Lexeme != ")" {
+		for !p.isAtEnd() {
+			n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
+			n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+
+			if !p.matchWithLex(scanner.SYMBOL, ",") {
+				break
+			}
+		}
+	}
+
+	return n
+}
+
+func (p *Parser) subroutineBody() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "subroutineBody",
+		Nodes:    []SyntaxNode{},
+	}
+
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "{"))
+
+	for !p.isAtEnd() && p.peek().Type == scanner.VAR {
+		n.Nodes = append(n.Nodes, p.varDec())
+	}
+
+	p.statements()
+
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "}"))
+
+	return n
+}
+
+func (p *Parser) varDec() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "varDec",
+		Nodes:    []SyntaxNode{},
+	}
+
+	n.Nodes = append(n.Nodes, p.consume(scanner.VAR))
+	n = p.varInner(n)
+
+	return n
+}
+
+func (p *Parser) statements() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "statements",
+		Nodes:    []SyntaxNode{},
+	}
+
+	for !p.isAtEnd() && p.peek().Lexeme != "}" {
+		switch {
+		case p.peek().Type == scanner.LET:
+			n.Nodes = append(n.Nodes, p.letStatement())
+		}
+	}
+
+	return n
+}
+
+func (p *Parser) letStatement() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "letStatement",
+		Nodes:    []SyntaxNode{},
+	}
+
+	n.Nodes = append(n.Nodes, p.consume(scanner.LET))
+	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+
+	// Array handling goes here
+
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "="))
+	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER)) // TODO: Handle expressions
+
+	return n
+}
+
+func (p *Parser) varInner(n SyntaxNode) SyntaxNode {
+	n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
+	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+
+	for !p.isAtEnd() && p.matchWithLex(scanner.SYMBOL, ",") {
+		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+	}
+
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ";"))
 
 	return n
 }
