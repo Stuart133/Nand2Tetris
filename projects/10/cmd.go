@@ -35,12 +35,12 @@ func main() {
 		stmts := p.Parse()
 		fmt.Println(stmts)
 
-		oPath := fmt.Sprintf("%s\\%s-gen.xml", path, getFileName(f.Name()))
-		err = saveFile(oPath, tokens)
-		if err != nil {
-			fmt.Printf("There was an error writing the the output file: %v\n", err)
-			os.Exit(1)
-		}
+		// oPath := fmt.Sprintf("%s\\%s-gen.xml", path, getFileName(f.Name()))
+		// err = saveFile(oPath, tokens)
+		// if err != nil {
+		// 	fmt.Printf("There was an error writing the the output file: %v\n", err)
+		// 	os.Exit(1)
+		// }
 	}
 }
 

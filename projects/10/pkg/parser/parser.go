@@ -150,6 +150,12 @@ func (p *Parser) statements() SyntaxNode {
 		switch {
 		case p.peek().Type == scanner.LET:
 			n.Nodes = append(n.Nodes, p.letStatement())
+		case p.peek().Type == scanner.IF:
+			n.Nodes = append(n.Nodes, p.ifStatement())
+		case p.peek().Type == scanner.WHILE:
+			n.Nodes = append(n.Nodes, p.whileStatement())
+		case p.peek().Type == scanner.DO:
+			n.Nodes = append(n.Nodes, p.doStatement())
 		}
 	}
 
@@ -165,10 +171,74 @@ func (p *Parser) letStatement() SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.LET))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 
-	// Array handling goes here
+	// TODO: Handle arrays
 
 	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "="))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER)) // TODO: Handle expressions
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ";"))
+
+	return n
+}
+
+func (p *Parser) ifStatement() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "ifStatement",
+		Nodes:    []SyntaxNode{},
+	}
+
+	n.Nodes = append(n.Nodes, p.consume(scanner.IF))
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "("))
+	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER)) // TODO: Handle expressions
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ")"))
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "{"))
+	n.Nodes = append(n.Nodes, p.statements())
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "}"))
+
+	if p.peek().Type == scanner.ELSE {
+		n.Nodes = append(n.Nodes, p.consume(scanner.ELSE))
+		n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "{"))
+		n.Nodes = append(n.Nodes, p.statements())
+		n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "}"))
+	}
+
+	return n
+}
+
+func (p *Parser) whileStatement() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "whileStatement",
+		Nodes:    []SyntaxNode{},
+	}
+
+	n.Nodes = append(n.Nodes, p.consume(scanner.WHILE))
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "("))
+	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER)) // TODO: Handle expressions
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ")"))
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "{"))
+	n.Nodes = append(n.Nodes, p.statements())
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "}"))
+
+	return n
+}
+
+func (p *Parser) doStatement() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "doStatement",
+		Nodes:    []SyntaxNode{},
+	}
+
+	n.Nodes = append(n.Nodes, p.consume(scanner.DO))
+
+	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+	if p.peek().Lexeme == "." {
+		n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "."))
+		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+	}
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "("))
+	// Expr list
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ")"))
+
+	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ";"))
 
 	return n
 }
