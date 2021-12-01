@@ -23,6 +23,25 @@ const (
 	NULL
 	THIS
 	SYMBOL
+	LEFT_BRACE
+	RIGHT_BRACE
+	LEFT_PAREN
+	RIGHT_PAREN
+	LEFT_BRACKET
+	RIGHT_BRACKET
+	DOT
+	COMMA
+	SEMICOLON
+	PLUS
+	MINUS
+	STAR
+	SLASH
+	AND
+	OR
+	LESS_THAN
+	GREATER_THAN
+	EQUALS
+	NOT
 	IDENTIFIER
 	INT_CONST
 	STRING_CONST
@@ -88,48 +107,48 @@ func (s *Scanner) scanToken() {
 
 	switch {
 	case c == '{':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(LEFT_BRACE, "symbol")
 	case c == '}':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(RIGHT_BRACE, "symbol")
 	case c == '(':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(LEFT_PAREN, "symbol")
 	case c == ')':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(RIGHT_PAREN, "symbol")
 	case c == '[':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(LEFT_BRACKET, "symbol")
 	case c == ']':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(RIGHT_BRACKET, "symbol")
 	case c == '.':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(DOT, "symbol")
 	case c == ',':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(COMMA, "symbol")
 	case c == ';':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(SEMICOLON, "symbol")
 	case c == '+':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(PLUS, "symbol")
 	case c == '-':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(MINUS, "symbol")
 	case c == '*':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(STAR, "symbol")
 	case c == '&':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(AND, "symbol")
 	case c == '|':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(OR, "symbol")
 	case c == '<':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(LESS_THAN, "symbol")
 	case c == '>':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(GREATER_THAN, "symbol")
 	case c == '=':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(EQUALS, "symbol")
 	case c == '~':
-		s.addToken(SYMBOL, "symbol")
+		s.addToken(NOT, "symbol")
 	case c == '/':
 		if s.match('/') {
 			s.comment()
 		} else if s.match('*') {
 			s.blockComment()
 		} else {
-			s.addToken(SYMBOL, "symbol")
+			s.addToken(SLASH, "symbol")
 		}
 
 	// Ignore whitespace

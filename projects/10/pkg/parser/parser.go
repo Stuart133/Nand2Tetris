@@ -46,16 +46,18 @@ func (p *Parser) class() SyntaxNode {
 	}
 	n.Nodes = append(n.Nodes, p.consume(scanner.CLASS))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "{"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
 
-	for !p.isAtEnd() && (p.peek().Type == scanner.STATIC || p.peek().Type == scanner.FIELD) {
+	for !p.isAtEnd() && (p.peek() == scanner.STATIC || p.peek() == scanner.FIELD) {
 		n.Nodes = append(n.Nodes, p.classVarDec())
 	}
 
 	for !p.isAtEnd() &&
-		(p.peek().Type == scanner.CONSTRUCTOR || p.peek().Type == scanner.FUNCTION || p.peek().Type == scanner.METHOD) {
+		(p.peek() == scanner.CONSTRUCTOR || p.peek() == scanner.FUNCTION || p.peek() == scanner.METHOD) {
 		n.Nodes = append(n.Nodes, p.subroutineDec())
 	}
+
+	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
 
 	return n
 }
@@ -81,9 +83,9 @@ func (p *Parser) subroutineDec() SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD))
 	n.Nodes = append(n.Nodes, p.consume(scanner.VOID, scanner.IDENTIFIER))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "("))
+	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
 	n.Nodes = append(n.Nodes, p.parameterList())
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ")"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
 	n.Nodes = append(n.Nodes, p.subroutineBody())
 
 	return n
@@ -95,12 +97,12 @@ func (p *Parser) parameterList() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	if p.peek().Lexeme != ")" {
+	if p.peek() != scanner.RIGHT_PAREN {
 		for !p.isAtEnd() {
 			n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
 			n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 
-			if !p.matchWithLex(scanner.SYMBOL, ",") {
+			if !p.match(scanner.COMMA) {
 				break
 			}
 		}
@@ -115,15 +117,15 @@ func (p *Parser) subroutineBody() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "{"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
 
-	for !p.isAtEnd() && p.peek().Type == scanner.VAR {
+	for !p.isAtEnd() && p.peek() == scanner.VAR {
 		n.Nodes = append(n.Nodes, p.varDec())
 	}
 
 	p.statements()
 
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "}"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
 
 	return n
 }
@@ -146,15 +148,15 @@ func (p *Parser) statements() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	for !p.isAtEnd() && p.peek().Lexeme != "}" {
-		switch {
-		case p.peek().Type == scanner.LET:
+	for !p.isAtEnd() && p.peek() != scanner.RIGHT_PAREN {
+		switch p.peek() {
+		case scanner.LET:
 			n.Nodes = append(n.Nodes, p.letStatement())
-		case p.peek().Type == scanner.IF:
+		case scanner.IF:
 			n.Nodes = append(n.Nodes, p.ifStatement())
-		case p.peek().Type == scanner.WHILE:
+		case scanner.WHILE:
 			n.Nodes = append(n.Nodes, p.whileStatement())
-		case p.peek().Type == scanner.DO:
+		case scanner.DO:
 			n.Nodes = append(n.Nodes, p.doStatement())
 		}
 	}
@@ -173,9 +175,9 @@ func (p *Parser) letStatement() SyntaxNode {
 
 	// TODO: Handle arrays
 
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "="))
+	n.Nodes = append(n.Nodes, p.consume(scanner.EQUALS))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER)) // TODO: Handle expressions
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ";"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
 
 	return n
 }
@@ -187,18 +189,18 @@ func (p *Parser) ifStatement() SyntaxNode {
 	}
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.IF))
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "("))
+	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER)) // TODO: Handle expressions
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ")"))
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "{"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
+	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
 	n.Nodes = append(n.Nodes, p.statements())
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "}"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
 
-	if p.peek().Type == scanner.ELSE {
+	if p.peek() == scanner.ELSE {
 		n.Nodes = append(n.Nodes, p.consume(scanner.ELSE))
-		n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "{"))
+		n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
 		n.Nodes = append(n.Nodes, p.statements())
-		n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "}"))
+		n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
 	}
 
 	return n
@@ -211,12 +213,12 @@ func (p *Parser) whileStatement() SyntaxNode {
 	}
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.WHILE))
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "("))
+	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER)) // TODO: Handle expressions
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ")"))
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "{"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
+	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
 	n.Nodes = append(n.Nodes, p.statements())
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "}"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
 
 	return n
 }
@@ -230,15 +232,15 @@ func (p *Parser) doStatement() SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.DO))
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-	if p.peek().Lexeme == "." {
-		n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "."))
+	if p.peek() == scanner.DOT {
+		n.Nodes = append(n.Nodes, p.consume(scanner.DOT))
 		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 	}
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, "("))
+	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
 	// Expr list
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ")"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
 
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ";"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
 
 	return n
 }
@@ -247,29 +249,13 @@ func (p *Parser) varInner(n SyntaxNode) SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 
-	for !p.isAtEnd() && p.matchWithLex(scanner.SYMBOL, ",") {
+	for !p.isAtEnd() && p.match(scanner.COMMA) {
 		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 	}
 
-	n.Nodes = append(n.Nodes, p.consumeWithLex(scanner.SYMBOL, ";"))
+	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
 
 	return n
-}
-
-func (p *Parser) consumeWithLex(t int, lex string) SyntaxNode {
-	c := p.source[p.current]
-
-	if c.Type == t && c.Lexeme == lex {
-		p.advance()
-		return SyntaxNode{
-			TypeName: c.TypeName,
-			Lexeme:   lex,
-			Nodes:    []SyntaxNode{},
-		}
-	}
-
-	fmt.Printf("Got token %v\n", c)
-	panic("Unexpected token")
 }
 
 func (p *Parser) consume(types ...int) SyntaxNode {
@@ -290,10 +276,8 @@ func (p *Parser) consume(types ...int) SyntaxNode {
 	panic("Unexpected token")
 }
 
-func (p *Parser) matchWithLex(t int, lex string) bool {
-	c := p.source[p.current]
-
-	if c.Type == t && c.Lexeme == lex {
+func (p *Parser) match(t int) bool {
+	if p.source[p.current].Type == t {
 		p.advance()
 		return true
 	}
@@ -301,12 +285,8 @@ func (p *Parser) matchWithLex(t int, lex string) bool {
 	return false
 }
 
-func (p *Parser) match(t int) bool {
-	return p.matchWithLex(t, p.source[p.current].Lexeme)
-}
-
-func (p *Parser) peek() scanner.Token {
-	return p.source[p.current]
+func (p *Parser) peek() int {
+	return p.source[p.current].Type
 }
 
 func (p *Parser) advance() scanner.Token {

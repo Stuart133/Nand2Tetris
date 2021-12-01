@@ -13,7 +13,8 @@ func main() {
 	path := os.Args[1]
 	fi, err := ioutil.ReadDir(path)
 	if err != nil {
-		fmt.Printf("Could not read directory: %v", err)
+		fmt.Printf("Could not read directory: %v\n", err)
+		os.Exit(1)
 	}
 
 	for _, f := range fi {
@@ -21,9 +22,9 @@ func main() {
 			continue
 		}
 
-		c, err := ioutil.ReadFile(fmt.Sprintf("%s\\%s", path, f.Name()))
+		c, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", path, f.Name()))
 		if err != nil {
-			fmt.Printf("Could not open file: %v", err)
+			fmt.Printf("Could not open file: %v\n", err)
 			os.Exit(1)
 		}
 
