@@ -148,7 +148,7 @@ func (p *Parser) statements() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	for !p.isAtEnd() && p.peek() != scanner.RIGHT_PAREN {
+	for !p.isAtEnd() && p.peek() != scanner.RIGHT_BRACE {
 		switch p.peek() {
 		case scanner.LET:
 			n.Nodes = append(n.Nodes, p.letStatement())
@@ -158,6 +158,11 @@ func (p *Parser) statements() SyntaxNode {
 			n.Nodes = append(n.Nodes, p.whileStatement())
 		case scanner.DO:
 			n.Nodes = append(n.Nodes, p.doStatement())
+		case scanner.RETURN:
+			n.Nodes = append(n.Nodes, p.returnStatement())
+		default:
+			fmt.Println(p.source[p.current])
+			panic("Invalid symbol")
 		}
 	}
 
@@ -240,6 +245,18 @@ func (p *Parser) doStatement() SyntaxNode {
 	// Expr list
 	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
 
+	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
+
+	return n
+}
+
+func (p *Parser) returnStatement() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "returnStatement",
+		Nodes:    []SyntaxNode{},
+	}
+
+	n.Nodes = append(n.Nodes, p.consume(scanner.RETURN))
 	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
 
 	return n
