@@ -25,11 +25,9 @@ func NewParser(t []scanner.Token) Parser {
 
 func (p *Parser) Parse() []SyntaxNode {
 	stmts := make([]SyntaxNode, 0)
-	stmts = append(stmts, p.class())
-	return stmts
 
 	for !p.isAtEnd() {
-		if p.match(scanner.CLASS) {
+		if p.peek() == scanner.CLASS {
 			stmts = append(stmts, p.class())
 		} else {
 			panic("Unexpected token")
@@ -102,9 +100,11 @@ func (p *Parser) parameterList() SyntaxNode {
 			n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
 			n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 
-			if !p.match(scanner.COMMA) {
+			if p.peek() != scanner.COMMA {
 				break
 			}
+
+			n.Nodes = append(n.Nodes, p.consume(scanner.COMMA))
 		}
 	}
 
@@ -242,7 +242,7 @@ func (p *Parser) doStatement() SyntaxNode {
 		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 	}
 	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
-	// Expr list
+	n.Nodes = append(n.Nodes, p.expressionList())
 	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
@@ -257,7 +257,34 @@ func (p *Parser) returnStatement() SyntaxNode {
 	}
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.RETURN))
+	// TODO: Full expression
+	if p.peek() != scanner.SEMICOLON {
+		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+	}
+
 	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
+
+	return n
+}
+
+func (p *Parser) expressionList() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "expressionList",
+		Nodes:    []SyntaxNode{},
+	}
+
+	for !p.isAtEnd() && p.peek() != scanner.RIGHT_PAREN {
+		for !p.isAtEnd() {
+			// TODO: Full expression
+			n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER, scanner.THIS))
+
+			if p.peek() != scanner.COMMA {
+				break
+			}
+
+			n.Nodes = append(n.Nodes, p.consume(scanner.COMMA))
+		}
+	}
 
 	return n
 }
@@ -266,7 +293,8 @@ func (p *Parser) varInner(n SyntaxNode) SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 
-	for !p.isAtEnd() && p.match(scanner.COMMA) {
+	for !p.isAtEnd() && p.peek() == scanner.COMMA {
+		n.Nodes = append(n.Nodes, p.consume(scanner.COMMA))
 		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 	}
 
