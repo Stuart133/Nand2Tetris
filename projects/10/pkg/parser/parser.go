@@ -27,7 +27,7 @@ func (p *Parser) Parse() []SyntaxNode {
 	stmts := make([]SyntaxNode, 0)
 
 	for !p.isAtEnd() {
-		if p.peek() == scanner.CLASS {
+		if p.peek(scanner.CLASS) {
 			stmts = append(stmts, p.class())
 		} else {
 			panic("Unexpected token")
@@ -46,12 +46,11 @@ func (p *Parser) class() SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
 
-	for !p.isAtEnd() && (p.peek() == scanner.STATIC || p.peek() == scanner.FIELD) {
+	for !p.isAtEnd() && p.peek(scanner.STATIC, scanner.FIELD) {
 		n.Nodes = append(n.Nodes, p.classVarDec())
 	}
 
-	for !p.isAtEnd() &&
-		(p.peek() == scanner.CONSTRUCTOR || p.peek() == scanner.FUNCTION || p.peek() == scanner.METHOD) {
+	for !p.isAtEnd() && p.peek(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD) {
 		n.Nodes = append(n.Nodes, p.subroutineDec())
 	}
 
@@ -95,12 +94,12 @@ func (p *Parser) parameterList() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	if p.peek() != scanner.RIGHT_PAREN {
+	if !p.peek(scanner.RIGHT_PAREN) {
 		for !p.isAtEnd() {
 			n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
 			n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 
-			if p.peek() != scanner.COMMA {
+			if !p.peek(scanner.COMMA) {
 				break
 			}
 
@@ -119,11 +118,11 @@ func (p *Parser) subroutineBody() SyntaxNode {
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
 
-	for !p.isAtEnd() && p.peek() == scanner.VAR {
+	for !p.isAtEnd() && p.peek(scanner.VAR) {
 		n.Nodes = append(n.Nodes, p.varDec())
 	}
 
-	p.statements()
+	n.Nodes = append(n.Nodes, p.statements())
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
 
@@ -148,8 +147,8 @@ func (p *Parser) statements() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	for !p.isAtEnd() && p.peek() != scanner.RIGHT_BRACE {
-		switch p.peek() {
+	for !p.isAtEnd() && !p.peek(scanner.RIGHT_BRACE) {
+		switch p.source[p.current].Type {
 		case scanner.LET:
 			n.Nodes = append(n.Nodes, p.letStatement())
 		case scanner.IF:
@@ -181,7 +180,7 @@ func (p *Parser) letStatement() SyntaxNode {
 	// TODO: Handle arrays
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.EQUALS))
-	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER)) // TODO: Handle expressions
+	n.Nodes = append(n.Nodes, p.expression())
 	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
 
 	return n
@@ -195,13 +194,13 @@ func (p *Parser) ifStatement() SyntaxNode {
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.IF))
 	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
-	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER)) // TODO: Handle expressions
+	n.Nodes = append(n.Nodes, p.expression())
 	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
 	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
 	n.Nodes = append(n.Nodes, p.statements())
 	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
 
-	if p.peek() == scanner.ELSE {
+	if p.peek(scanner.ELSE) {
 		n.Nodes = append(n.Nodes, p.consume(scanner.ELSE))
 		n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
 		n.Nodes = append(n.Nodes, p.statements())
@@ -219,7 +218,7 @@ func (p *Parser) whileStatement() SyntaxNode {
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.WHILE))
 	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
-	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER)) // TODO: Handle expressions
+	n.Nodes = append(n.Nodes, p.expression())
 	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
 	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
 	n.Nodes = append(n.Nodes, p.statements())
@@ -237,7 +236,7 @@ func (p *Parser) doStatement() SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.DO))
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-	if p.peek() == scanner.DOT {
+	if p.peek(scanner.DOT) {
 		n.Nodes = append(n.Nodes, p.consume(scanner.DOT))
 		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 	}
@@ -257,9 +256,8 @@ func (p *Parser) returnStatement() SyntaxNode {
 	}
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.RETURN))
-	// TODO: Full expression
-	if p.peek() != scanner.SEMICOLON {
-		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+	if !p.peek(scanner.SEMICOLON) {
+		n.Nodes = append(n.Nodes, p.expression())
 	}
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
@@ -273,12 +271,11 @@ func (p *Parser) expressionList() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	for !p.isAtEnd() && p.peek() != scanner.RIGHT_PAREN {
+	for !p.isAtEnd() && !p.peek(scanner.RIGHT_PAREN) {
 		for !p.isAtEnd() {
-			// TODO: Full expression
-			n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER, scanner.THIS))
+			n.Nodes = append(n.Nodes, p.expression())
 
-			if p.peek() != scanner.COMMA {
+			if !p.peek(scanner.COMMA) {
 				break
 			}
 
@@ -289,11 +286,38 @@ func (p *Parser) expressionList() SyntaxNode {
 	return n
 }
 
+func (p *Parser) expression() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "expression",
+		Nodes:    []SyntaxNode{},
+	}
+
+	n.Nodes = append(n.Nodes, p.term())
+
+	for !p.isAtEnd() && p.peek(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS) {
+		n.Nodes = append(n.Nodes, p.consume(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS))
+		n.Nodes = append(n.Nodes, p.term())
+	}
+
+	return n
+}
+
+func (p *Parser) term() SyntaxNode {
+	n := SyntaxNode{
+		TypeName: "term",
+		Nodes:    []SyntaxNode{},
+	}
+
+	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+
+	return n
+}
+
 func (p *Parser) varInner(n SyntaxNode) SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 
-	for !p.isAtEnd() && p.peek() == scanner.COMMA {
+	for !p.isAtEnd() && p.peek(scanner.COMMA) {
 		n.Nodes = append(n.Nodes, p.consume(scanner.COMMA))
 		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 	}
@@ -321,17 +345,16 @@ func (p *Parser) consume(types ...int) SyntaxNode {
 	panic("Unexpected token")
 }
 
-func (p *Parser) match(t int) bool {
-	if p.source[p.current].Type == t {
-		p.advance()
-		return true
+func (p *Parser) peek(types ...int) bool {
+	c := p.source[p.current]
+
+	for _, t := range types {
+		if c.Type == t {
+			return true
+		}
 	}
 
 	return false
-}
-
-func (p *Parser) peek() int {
-	return p.source[p.current].Type
 }
 
 func (p *Parser) advance() scanner.Token {
