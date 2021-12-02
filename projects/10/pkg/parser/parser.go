@@ -308,7 +308,7 @@ func (p *Parser) term() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+	n.Nodes = append(n.Nodes, p.consume(scanner.INT_CONST, scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL, scanner.THIS, scanner.IDENTIFIER))
 
 	return n
 }
