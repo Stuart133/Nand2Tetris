@@ -308,7 +308,19 @@ func (p *Parser) term() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.INT_CONST, scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL, scanner.THIS, scanner.IDENTIFIER))
+	// Subroutine Call
+	if p.peekAhead(scanner.DOT, scanner.LEFT_PAREN) {
+		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+		if p.peek(scanner.DOT) {
+			n.Nodes = append(n.Nodes, p.consume(scanner.DOT))
+			n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+		}
+		n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
+		n.Nodes = append(n.Nodes, p.expressionList())
+		n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
+	} else {
+		n.Nodes = append(n.Nodes, p.consume(scanner.INT_CONST, scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL, scanner.THIS, scanner.IDENTIFIER))
+	}
 
 	return n
 }
@@ -347,6 +359,18 @@ func (p *Parser) consume(types ...int) SyntaxNode {
 
 func (p *Parser) peek(types ...int) bool {
 	c := p.source[p.current]
+
+	for _, t := range types {
+		if c.Type == t {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (p *Parser) peekAhead(types ...int) bool {
+	c := p.source[p.current+1]
 
 	for _, t := range types {
 		if c.Type == t {
