@@ -177,7 +177,12 @@ func (p *Parser) letStatement() SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.LET))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 
-	// TODO: Handle arrays
+	fmt.Println(p.source[p.current])
+	if p.peek(scanner.LEFT_BRACKET) {
+		n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACKET))
+		n.Nodes = append(n.Nodes, p.expression())
+		n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACKET))
+	}
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.EQUALS))
 	n.Nodes = append(n.Nodes, p.expression())
@@ -308,7 +313,6 @@ func (p *Parser) term() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	// Subroutine Call
 	if p.peekAhead(scanner.DOT, scanner.LEFT_PAREN) {
 		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 		if p.peek(scanner.DOT) {
@@ -318,6 +322,11 @@ func (p *Parser) term() SyntaxNode {
 		n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
 		n.Nodes = append(n.Nodes, p.expressionList())
 		n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
+	} else if p.peekAhead(scanner.LEFT_BRACKET) {
+		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+		n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACKET))
+		n.Nodes = append(n.Nodes, p.expression())
+		n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACKET))
 	} else {
 		n.Nodes = append(n.Nodes, p.consume(scanner.INT_CONST, scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL, scanner.THIS, scanner.IDENTIFIER))
 	}
