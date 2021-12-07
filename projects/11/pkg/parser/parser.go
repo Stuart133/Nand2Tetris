@@ -27,7 +27,7 @@ func (p *Parser) Parse() []SyntaxNode {
 	stmts := make([]SyntaxNode, 0)
 
 	for !p.isAtEnd() {
-		if p.peek(scanner.CLASS) {
+		if p.check(scanner.CLASS) {
 			stmts = append(stmts, p.class())
 		} else {
 			panic("Unexpected token")
@@ -42,9 +42,9 @@ func (p *Parser) class() SyntaxNode {
 		TypeName: "class",
 		Nodes:    []SyntaxNode{},
 	}
-	n.Nodes = append(n.Nodes, p.consume(scanner.CLASS))
+
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
+	p.match(scanner.LEFT_BRACE)
 
 	for !p.isAtEnd() && p.peek(scanner.STATIC, scanner.FIELD) {
 		n.Nodes = append(n.Nodes, p.classVarDec())
@@ -54,7 +54,7 @@ func (p *Parser) class() SyntaxNode {
 		n.Nodes = append(n.Nodes, p.subroutineDec())
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
+	p.match(scanner.RIGHT_BRACE)
 
 	return n
 }
@@ -80,9 +80,9 @@ func (p *Parser) subroutineDec() SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD))
 	n.Nodes = append(n.Nodes, p.consume(scanner.VOID, scanner.IDENTIFIER))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
+	p.match(scanner.LEFT_PAREN)
 	n.Nodes = append(n.Nodes, p.parameterList())
-	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
+	p.match(scanner.RIGHT_PAREN)
 	n.Nodes = append(n.Nodes, p.subroutineBody())
 
 	return n
@@ -103,7 +103,7 @@ func (p *Parser) parameterList() SyntaxNode {
 				break
 			}
 
-			n.Nodes = append(n.Nodes, p.consume(scanner.COMMA))
+			p.match(scanner.COMMA)
 		}
 	}
 
@@ -116,7 +116,7 @@ func (p *Parser) subroutineBody() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
+	p.match(scanner.LEFT_BRACE)
 
 	for !p.isAtEnd() && p.peek(scanner.VAR) {
 		n.Nodes = append(n.Nodes, p.varDec())
@@ -124,7 +124,7 @@ func (p *Parser) subroutineBody() SyntaxNode {
 
 	n.Nodes = append(n.Nodes, p.statements())
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
+	p.match(scanner.RIGHT_BRACE)
 
 	return n
 }
@@ -135,7 +135,7 @@ func (p *Parser) varDec() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.VAR))
+	p.match(scanner.VAR)
 	n = p.varInner(n)
 
 	return n
@@ -148,20 +148,20 @@ func (p *Parser) statements() SyntaxNode {
 	}
 
 	for !p.isAtEnd() && !p.peek(scanner.RIGHT_BRACE) {
-		switch p.source[p.current].Type {
-		case scanner.LET:
+		switch {
+		case p.check(scanner.LET):
 			n.Nodes = append(n.Nodes, p.letStatement())
-		case scanner.IF:
+		case p.check(scanner.IF):
 			n.Nodes = append(n.Nodes, p.ifStatement())
-		case scanner.WHILE:
+		case p.check(scanner.WHILE):
 			n.Nodes = append(n.Nodes, p.whileStatement())
-		case scanner.DO:
+		case p.check(scanner.DO):
 			n.Nodes = append(n.Nodes, p.doStatement())
-		case scanner.RETURN:
+		case p.check(scanner.RETURN):
 			n.Nodes = append(n.Nodes, p.returnStatement())
 		default:
 			fmt.Println(p.source[p.current])
-			panic("Invalid symbol")
+			panic(fmt.Sprintf("Unexpected symbol: %v", p.source[p.current]))
 		}
 	}
 
@@ -174,18 +174,16 @@ func (p *Parser) letStatement() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.LET))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 
-	if p.peek(scanner.LEFT_BRACKET) {
-		n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACKET))
+	if p.check(scanner.LEFT_BRACKET) {
 		n.Nodes = append(n.Nodes, p.expression())
-		n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACKET))
+		p.match(scanner.RIGHT_BRACKET)
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.EQUALS))
+	p.match(scanner.EQUALS)
 	n.Nodes = append(n.Nodes, p.expression())
-	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
+	p.match(scanner.SEMICOLON)
 
 	return n
 }
@@ -196,19 +194,17 @@ func (p *Parser) ifStatement() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.IF))
-	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
+	p.match(scanner.LEFT_PAREN)
 	n.Nodes = append(n.Nodes, p.expression())
-	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
-	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
+	p.match(scanner.RIGHT_PAREN)
+	p.match(scanner.LEFT_BRACE)
 	n.Nodes = append(n.Nodes, p.statements())
-	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
+	p.match(scanner.RIGHT_BRACE)
 
-	if p.peek(scanner.ELSE) {
-		n.Nodes = append(n.Nodes, p.consume(scanner.ELSE))
-		n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
+	if p.check(scanner.ELSE) {
+		p.match(scanner.LEFT_BRACE)
 		n.Nodes = append(n.Nodes, p.statements())
-		n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
+		p.match(scanner.RIGHT_BRACE)
 	}
 
 	return n
@@ -220,13 +216,12 @@ func (p *Parser) whileStatement() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.WHILE))
-	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
+	p.match(scanner.LEFT_PAREN)
 	n.Nodes = append(n.Nodes, p.expression())
-	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
-	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACE))
+	p.match(scanner.RIGHT_PAREN)
+	p.match(scanner.LEFT_BRACE)
 	n.Nodes = append(n.Nodes, p.statements())
-	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACE))
+	p.match(scanner.RIGHT_BRACE)
 
 	return n
 }
@@ -237,11 +232,8 @@ func (p *Parser) doStatement() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.DO))
-
 	n = p.subroutineCallInner(n)
-
-	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
+	p.match(scanner.SEMICOLON)
 
 	return n
 }
@@ -252,12 +244,10 @@ func (p *Parser) returnStatement() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.RETURN))
-	if !p.peek(scanner.SEMICOLON) {
+	if !p.check(scanner.SEMICOLON) {
 		n.Nodes = append(n.Nodes, p.expression())
+		p.match(scanner.SEMICOLON)
 	}
-
-	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
 
 	return n
 }
@@ -272,11 +262,9 @@ func (p *Parser) expressionList() SyntaxNode {
 		for !p.isAtEnd() {
 			n.Nodes = append(n.Nodes, p.expression())
 
-			if !p.peek(scanner.COMMA) {
+			if !p.check(scanner.COMMA) {
 				break
 			}
-
-			n.Nodes = append(n.Nodes, p.consume(scanner.COMMA))
 		}
 	}
 
@@ -305,18 +293,17 @@ func (p *Parser) term() SyntaxNode {
 		Nodes:    []SyntaxNode{},
 	}
 
-	if p.peek(scanner.LEFT_PAREN) {
-		n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
+	if p.check(scanner.LEFT_PAREN) {
 		n.Nodes = append(n.Nodes, p.expression())
-		n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
+		p.match(scanner.RIGHT_PAREN)
 	} else if p.peek(scanner.MINUS, scanner.NOT) {
 		n.Nodes = append(n.Nodes, p.consume(scanner.NOT, scanner.MINUS))
 		n.Nodes = append(n.Nodes, p.term())
 	} else if p.peekAhead(scanner.LEFT_BRACKET) {
 		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-		n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_BRACKET))
+		p.match(scanner.LEFT_BRACKET)
 		n.Nodes = append(n.Nodes, p.expression())
-		n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_BRACKET))
+		p.match(scanner.RIGHT_BRACKET)
 	} else if p.peekAhead(scanner.DOT, scanner.LEFT_PAREN) {
 		n = p.subroutineCallInner(n)
 	} else {
@@ -330,25 +317,23 @@ func (p *Parser) varInner(n SyntaxNode) SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 
-	for !p.isAtEnd() && p.peek(scanner.COMMA) {
-		n.Nodes = append(n.Nodes, p.consume(scanner.COMMA))
+	for !p.isAtEnd() && p.check(scanner.COMMA) {
 		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.SEMICOLON))
+	p.match(scanner.SEMICOLON)
 
 	return n
 }
 
 func (p *Parser) subroutineCallInner(n SyntaxNode) SyntaxNode {
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-	if p.peek(scanner.DOT) {
-		n.Nodes = append(n.Nodes, p.consume(scanner.DOT))
+	if p.check(scanner.DOT) {
 		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 	}
-	n.Nodes = append(n.Nodes, p.consume(scanner.LEFT_PAREN))
+	p.match(scanner.LEFT_PAREN)
 	n.Nodes = append(n.Nodes, p.expressionList())
-	n.Nodes = append(n.Nodes, p.consume(scanner.RIGHT_PAREN))
+	p.match(scanner.RIGHT_PAREN)
 
 	return n
 }
@@ -369,6 +354,28 @@ func (p *Parser) consume(types ...int) SyntaxNode {
 
 	fmt.Printf("Got token %v\n", c)
 	panic("Unexpected token")
+}
+
+func (p *Parser) match(types ...int) {
+	c := p.source[p.current]
+
+	for _, t := range types {
+		if c.Type == t {
+			p.advance()
+			return
+		}
+	}
+
+	panic(fmt.Sprintf("Unexpected token: %v", p.source[p.current]))
+}
+
+func (p *Parser) check(t int) bool {
+	if p.peek(t) {
+		p.advance()
+		return true
+	}
+
+	return false
 }
 
 func (p *Parser) peek(types ...int) bool {

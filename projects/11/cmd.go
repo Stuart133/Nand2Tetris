@@ -36,7 +36,7 @@ func main() {
 		p := parser.NewParser(tokens)
 		stmts := p.Parse()
 
-		oPath := fmt.Sprintf("%s\\%s-gen.xml", path, getFileName(f.Name()))
+		oPath := fmt.Sprintf("%s\\%s.xml", path, getFileName(f.Name()))
 		err = saveFile(oPath, stmts)
 		if err != nil {
 			fmt.Printf("There was an error writing the the output file: %v\n", err)
