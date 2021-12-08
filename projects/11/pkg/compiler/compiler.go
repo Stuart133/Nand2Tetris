@@ -13,9 +13,11 @@ type SyntaxNode struct {
 }
 
 type Compiler struct {
-	source  []scanner.Token
-	current int
-	writer  VmWriter
+	source     []scanner.Token
+	current    int
+	writer     VmWriter
+	global     symbolTable
+	subroutine symbolTable
 }
 
 func NewCompiler(t []scanner.Token, w io.Writer) Compiler {
@@ -27,39 +29,40 @@ func NewCompiler(t []scanner.Token, w io.Writer) Compiler {
 }
 
 func (p *Compiler) Compile() error {
-	var err error
-
 	for !p.isAtEnd() {
 		if p.check(scanner.CLASS) {
-			stmts = append(stmts, p.class())
+			err := p.class()
+			if err != nil {
+				return err
+			}
 		} else {
 			panic("Unexpected token")
 		}
 	}
 
-	return stmts
+	return nil
 }
 
-func (p *Compiler) class() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "class",
-		Nodes:    []SyntaxNode{},
-	}
-
-	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+func (p *Compiler) class() error {
+	id := p.consume(scanner.IDENTIFIER)
 	p.match(scanner.LEFT_BRACE)
 
+	p.global = symbolTable{}
+
 	for !p.isAtEnd() && p.peek(scanner.STATIC, scanner.FIELD) {
-		n.Nodes = append(n.Nodes, p.classVarDec())
+		// n.Nodes = append(n.Nodes, p.classVarDec())
 	}
 
 	for !p.isAtEnd() && p.peek(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD) {
-		n.Nodes = append(n.Nodes, p.subroutineDec())
+		err := p.subroutineDec(id.Lexeme)
+		if err != nil {
+			return err
+		}
 	}
 
 	p.match(scanner.RIGHT_BRACE)
 
-	return n
+	return nil
 }
 
 func (p *Compiler) classVarDec() SyntaxNode {
@@ -74,33 +77,33 @@ func (p *Compiler) classVarDec() SyntaxNode {
 	return n
 }
 
-func (p *Compiler) subroutineDec() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "subroutineDec",
-		Nodes:    []SyntaxNode{},
+func (p *Compiler) subroutineDec(className string) error {
+	p.subroutine = symbolTable{}
+
+	p.consume(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD)
+	// TODO: Handle CTOR & METHOD
+	p.consume(scanner.VOID, scanner.IDENTIFIER)
+	// TODO: Handle return type
+	name := p.consume(scanner.IDENTIFIER)
+
+	p.match(scanner.LEFT_PAREN)
+	p.parameterList()
+	p.match(scanner.RIGHT_PAREN)
+
+	err := p.subroutineBody(className, name.Lexeme)
+	if err != nil {
+		return err
 	}
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD))
-	n.Nodes = append(n.Nodes, p.consume(scanner.VOID, scanner.IDENTIFIER))
-	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-	p.match(scanner.LEFT_PAREN)
-	n.Nodes = append(n.Nodes, p.parameterList())
-	p.match(scanner.RIGHT_PAREN)
-	n.Nodes = append(n.Nodes, p.subroutineBody())
-
-	return n
+	return nil
 }
 
-func (p *Compiler) parameterList() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "parameterList",
-		Nodes:    []SyntaxNode{},
-	}
-
+func (p *Compiler) parameterList() {
 	if !p.peek(scanner.RIGHT_PAREN) {
 		for !p.isAtEnd() {
-			n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
-			n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+			typ := p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER).Lexeme
+			name := p.consume(scanner.IDENTIFIER).Lexeme
+			p.subroutine.AddSymbol(name, typ, ARGUMENT)
 
 			if !p.peek(scanner.COMMA) {
 				break
@@ -109,27 +112,26 @@ func (p *Compiler) parameterList() SyntaxNode {
 			p.match(scanner.COMMA)
 		}
 	}
-
-	return n
 }
 
-func (p *Compiler) subroutineBody() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "subroutineBody",
-		Nodes:    []SyntaxNode{},
-	}
-
+func (p *Compiler) subroutineBody(className, subroutineName string) error {
 	p.match(scanner.LEFT_BRACE)
 
+	nVar := 0
 	for !p.isAtEnd() && p.peek(scanner.VAR) {
-		n.Nodes = append(n.Nodes, p.varDec())
+		p.varDec()
+		nVar++
 	}
 
-	n.Nodes = append(n.Nodes, p.statements())
+	err := p.writer.WriteFunction(fmt.Sprintf("%s.%s", className, subroutineName), nVar)
+	if err != nil {
+		return err
+	}
 
+	p.statements()
 	p.match(scanner.RIGHT_BRACE)
 
-	return n
+	return nil
 }
 
 func (p *Compiler) varDec() SyntaxNode {
