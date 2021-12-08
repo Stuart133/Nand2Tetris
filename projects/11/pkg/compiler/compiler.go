@@ -146,11 +146,11 @@ func (c *Compiler) statements() error {
 		case c.check(scanner.LET):
 			err = c.letStatement()
 		case c.check(scanner.IF):
-			c.ifStatement()
+			err = c.ifStatement()
 		case c.check(scanner.WHILE):
-			c.whileStatement()
+			err = c.whileStatement()
 		case c.check(scanner.DO):
-			c.doStatement()
+			err = c.doStatement()
 		case c.check(scanner.RETURN):
 			c.returnStatement()
 		default:
@@ -163,7 +163,7 @@ func (c *Compiler) statements() error {
 
 func (c *Compiler) letStatement() error {
 	name := c.consume(scanner.IDENTIFIER)
-	symbol := c.getSymbol(name.Lexeme)
+	symbol, _ := c.getSymbol(name.Lexeme)
 
 	// if p.check(scanner.LEFT_BRACKET) {
 	// 	n.Nodes = append(n.Nodes, p.expression())
@@ -171,61 +171,55 @@ func (c *Compiler) letStatement() error {
 	// }
 
 	c.match(scanner.EQUALS)
-	// n.Nodes = append(n.Nodes, p.expression())
+	c.expression()
 	c.match(scanner.SEMICOLON)
 	err := c.writer.WritePop(symbol.kind, symbol.count)
 
 	return err
 }
 
-func (p *Compiler) ifStatement() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "ifStatement",
-		Nodes:    []SyntaxNode{},
+// TOOD: FINISH IF
+func (c *Compiler) ifStatement() error {
+	c.match(scanner.LEFT_PAREN)
+	c.expression()
+	c.match(scanner.RIGHT_PAREN)
+
+	c.match(scanner.LEFT_BRACE)
+	err := c.statements()
+	if err != nil {
+		return err
 	}
+	c.match(scanner.RIGHT_BRACE)
 
-	p.match(scanner.LEFT_PAREN)
-	n.Nodes = append(n.Nodes, p.expression())
-	p.match(scanner.RIGHT_PAREN)
-	p.match(scanner.LEFT_BRACE)
-	n.Nodes = append(n.Nodes, p.statements())
-	p.match(scanner.RIGHT_BRACE)
+	// if p.check(scanner.ELSE) {
+	// 	p.match(scanner.LEFT_BRACE)
+	// 	n.Nodes = append(n.Nodes, p.statements())
+	// 	p.match(scanner.RIGHT_BRACE)
+	// }
 
-	if p.check(scanner.ELSE) {
-		p.match(scanner.LEFT_BRACE)
-		n.Nodes = append(n.Nodes, p.statements())
-		p.match(scanner.RIGHT_BRACE)
-	}
-
-	return n
+	return nil
 }
 
-func (p *Compiler) whileStatement() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "whileStatement",
-		Nodes:    []SyntaxNode{},
+func (c *Compiler) whileStatement() error {
+	c.match(scanner.LEFT_PAREN)
+	c.expression()
+	c.match(scanner.RIGHT_PAREN)
+	c.match(scanner.LEFT_BRACE)
+	err := c.statements()
+	if err != nil {
+		return err
 	}
 
-	p.match(scanner.LEFT_PAREN)
-	n.Nodes = append(n.Nodes, p.expression())
-	p.match(scanner.RIGHT_PAREN)
-	p.match(scanner.LEFT_BRACE)
-	n.Nodes = append(n.Nodes, p.statements())
-	p.match(scanner.RIGHT_BRACE)
+	c.match(scanner.RIGHT_BRACE)
 
-	return n
+	return nil
 }
 
-func (p *Compiler) doStatement() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "doStatement",
-		Nodes:    []SyntaxNode{},
-	}
+func (c *Compiler) doStatement() error {
+	c.subroutineCallInner()
+	c.match(scanner.SEMICOLON)
 
-	n = p.subroutineCallInner(n)
-	p.match(scanner.SEMICOLON)
-
-	return n
+	return nil
 }
 
 func (p *Compiler) returnStatement() SyntaxNode {
@@ -295,7 +289,7 @@ func (p *Compiler) term() SyntaxNode {
 		n.Nodes = append(n.Nodes, p.expression())
 		p.match(scanner.RIGHT_BRACKET)
 	} else if p.peekAhead(scanner.DOT, scanner.LEFT_PAREN) {
-		n = p.subroutineCallInner(n)
+		p.subroutineCallInner()
 	} else {
 		n.Nodes = append(n.Nodes, p.consume(scanner.INT_CONST, scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL, scanner.THIS, scanner.IDENTIFIER))
 	}
@@ -317,29 +311,45 @@ func (c *Compiler) varInner() {
 	c.match(scanner.SEMICOLON)
 }
 
-func (p *Compiler) subroutineCallInner(n SyntaxNode) SyntaxNode {
-	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-	if p.check(scanner.DOT) {
-		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+func (c *Compiler) subroutineCallInner() error {
+	name := c.consume(scanner.IDENTIFIER).Lexeme
+	if c.check(scanner.DOT) {
+		subroutineName := c.consume(scanner.IDENTIFIER)
+		symbol, v := c.getSymbol(name)
+		if !v {
+			name = fmt.Sprintf("%s.%s", name, subroutineName.Lexeme)
+		} else {
+			name = fmt.Sprintf("%s.%s", symbol.typ, subroutineName.Lexeme)
+		}
+	} else {
+		symbol, _ := c.getSymbol("this")
+		err := c.writer.WritePush(symbol.kind, symbol.count)
+		if err != nil {
+			return err
+		}
 	}
-	p.match(scanner.LEFT_PAREN)
-	n.Nodes = append(n.Nodes, p.expressionList())
-	p.match(scanner.RIGHT_PAREN)
 
-	return n
+	// TODO: Wire up numbers
+	c.match(scanner.LEFT_PAREN)
+	c.expressionList()
+	c.match(scanner.RIGHT_PAREN)
+
+	err := c.writer.WriteCall(name, 0)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (c *Compiler) getSymbol(name string) symbol {
+func (c *Compiler) getSymbol(name string) (symbol, bool) {
 	s, v := c.subroutine.getSymbol(name)
 
 	if !v {
 		s, v = c.global.getSymbol(name)
-		if !v {
-			panic(fmt.Sprintf("Attmepting to use symbol %s before declaration", name))
-		}
 	}
 
-	return s
+	return s, v
 }
 
 func (p *Compiler) consume(types ...int) SyntaxNode {
