@@ -47,7 +47,7 @@ func (p *Compiler) class() error {
 	id := p.consume(scanner.IDENTIFIER)
 	p.match(scanner.LEFT_BRACE)
 
-	p.global = symbolTable{}
+	p.global = newSymbolTable()
 
 	for !p.isAtEnd() && p.peek(scanner.STATIC, scanner.FIELD) {
 		// n.Nodes = append(n.Nodes, p.classVarDec())
@@ -72,13 +72,13 @@ func (p *Compiler) classVarDec() SyntaxNode {
 	}
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.STATIC, scanner.FIELD))
-	n = p.varInner(n)
+	// n = p.varInner(n)
 
 	return n
 }
 
 func (p *Compiler) subroutineDec(className string) error {
-	p.subroutine = symbolTable{}
+	p.subroutine = newSymbolTable()
 
 	p.consume(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD)
 	// TODO: Handle CTOR & METHOD
@@ -103,7 +103,7 @@ func (p *Compiler) parameterList() {
 		for !p.isAtEnd() {
 			typ := p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER).Lexeme
 			name := p.consume(scanner.IDENTIFIER).Lexeme
-			p.subroutine.AddSymbol(name, typ, ARGUMENT)
+			p.subroutine.addSymbol(name, typ, ARGUMENT)
 
 			if !p.peek(scanner.COMMA) {
 				break
@@ -134,63 +134,48 @@ func (p *Compiler) subroutineBody(className, subroutineName string) error {
 	return nil
 }
 
-func (p *Compiler) varDec() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "varDec",
-		Nodes:    []SyntaxNode{},
-	}
-
+func (p *Compiler) varDec() {
 	p.match(scanner.VAR)
-	n = p.varInner(n)
-
-	return n
+	p.varInner()
 }
 
-func (p *Compiler) statements() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "statements",
-		Nodes:    []SyntaxNode{},
-	}
-
-	for !p.isAtEnd() && !p.peek(scanner.RIGHT_BRACE) {
+func (c *Compiler) statements() error {
+	var err error
+	for !c.isAtEnd() && !c.peek(scanner.RIGHT_BRACE) {
 		switch {
-		case p.check(scanner.LET):
-			n.Nodes = append(n.Nodes, p.letStatement())
-		case p.check(scanner.IF):
-			n.Nodes = append(n.Nodes, p.ifStatement())
-		case p.check(scanner.WHILE):
-			n.Nodes = append(n.Nodes, p.whileStatement())
-		case p.check(scanner.DO):
-			n.Nodes = append(n.Nodes, p.doStatement())
-		case p.check(scanner.RETURN):
-			n.Nodes = append(n.Nodes, p.returnStatement())
+		case c.check(scanner.LET):
+			err = c.letStatement()
+		case c.check(scanner.IF):
+			c.ifStatement()
+		case c.check(scanner.WHILE):
+			c.whileStatement()
+		case c.check(scanner.DO):
+			c.doStatement()
+		case c.check(scanner.RETURN):
+			c.returnStatement()
 		default:
-			fmt.Println(p.source[p.current])
-			panic(fmt.Sprintf("Unexpected symbol: %v", p.source[p.current]))
+			panic(fmt.Sprintf("Unexpected symbol: %v", c.source[c.current]))
 		}
 	}
 
-	return n
+	return err
 }
 
-func (p *Compiler) letStatement() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "letStatement",
-		Nodes:    []SyntaxNode{},
-	}
+func (c *Compiler) letStatement() error {
+	name := c.consume(scanner.IDENTIFIER)
+	symbol := c.getSymbol(name.Lexeme)
 
-	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+	// if p.check(scanner.LEFT_BRACKET) {
+	// 	n.Nodes = append(n.Nodes, p.expression())
+	// 	p.match(scanner.RIGHT_BRACKET)
+	// }
 
-	if p.check(scanner.LEFT_BRACKET) {
-		n.Nodes = append(n.Nodes, p.expression())
-		p.match(scanner.RIGHT_BRACKET)
-	}
+	c.match(scanner.EQUALS)
+	// n.Nodes = append(n.Nodes, p.expression())
+	c.match(scanner.SEMICOLON)
+	err := c.writer.WritePop(symbol.kind, symbol.count)
 
-	p.match(scanner.EQUALS)
-	n.Nodes = append(n.Nodes, p.expression())
-	p.match(scanner.SEMICOLON)
-
-	return n
+	return err
 }
 
 func (p *Compiler) ifStatement() SyntaxNode {
@@ -318,17 +303,18 @@ func (p *Compiler) term() SyntaxNode {
 	return n
 }
 
-func (p *Compiler) varInner(n SyntaxNode) SyntaxNode {
-	n.Nodes = append(n.Nodes, p.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER))
-	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+func (c *Compiler) varInner() {
+	typ := c.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER)
+	name := c.consume(scanner.IDENTIFIER)
 
-	for !p.isAtEnd() && p.check(scanner.COMMA) {
-		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
+	c.subroutine.addSymbol(name.Lexeme, typ.Lexeme, LOCAL)
+
+	for !c.isAtEnd() && c.check(scanner.COMMA) {
+		name = c.consume(scanner.IDENTIFIER)
+		c.subroutine.addSymbol(name.Lexeme, typ.Lexeme, LOCAL)
 	}
 
-	p.match(scanner.SEMICOLON)
-
-	return n
+	c.match(scanner.SEMICOLON)
 }
 
 func (p *Compiler) subroutineCallInner(n SyntaxNode) SyntaxNode {
@@ -341,6 +327,19 @@ func (p *Compiler) subroutineCallInner(n SyntaxNode) SyntaxNode {
 	p.match(scanner.RIGHT_PAREN)
 
 	return n
+}
+
+func (c *Compiler) getSymbol(name string) symbol {
+	s, v := c.subroutine.getSymbol(name)
+
+	if !v {
+		s, v = c.global.getSymbol(name)
+		if !v {
+			panic(fmt.Sprintf("Attmepting to use symbol %s before declaration", name))
+		}
+	}
+
+	return s
 }
 
 func (p *Compiler) consume(types ...int) SyntaxNode {

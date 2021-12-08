@@ -8,8 +8,9 @@ const (
 )
 
 type symbol struct {
-	typ  string
-	kind int
+	typ   string
+	kind  int
+	count int
 }
 
 type symbolTable struct {
@@ -17,10 +18,26 @@ type symbolTable struct {
 	count map[int]int
 }
 
-func (t *symbolTable) AddSymbol(name, typ string, kind int) {
+func newSymbolTable() symbolTable {
+	return symbolTable{
+		table: map[string]symbol{},
+		count: map[int]int{},
+	}
+}
+
+func (t *symbolTable) addSymbol(name, typ string, kind int) {
 	t.table[name] = symbol{
 		typ:  typ,
 		kind: kind,
 	}
 	t.count[kind]++
+}
+
+func (t *symbolTable) getSymbol(name string) (symbol, bool) {
+	s, v := t.table[name]
+	if v {
+		s.count = t.count[s.kind] - 1
+	}
+
+	return s, v
 }
