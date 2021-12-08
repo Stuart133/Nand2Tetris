@@ -237,65 +237,61 @@ func (c *Compiler) returnStatement() error {
 	return err
 }
 
-func (p *Compiler) expressionList() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "expressionList",
-		Nodes:    []SyntaxNode{},
-	}
+func (c *Compiler) expressionList() error {
+	for !c.isAtEnd() && !c.peek(scanner.RIGHT_PAREN) {
+		for !c.isAtEnd() {
+			err := c.expression()
+			if err != nil {
+				return err
+			}
 
-	for !p.isAtEnd() && !p.peek(scanner.RIGHT_PAREN) {
-		for !p.isAtEnd() {
-			n.Nodes = append(n.Nodes, p.expression())
-
-			if !p.check(scanner.COMMA) {
+			if !c.check(scanner.COMMA) {
 				break
 			}
 		}
 	}
 
-	return n
+	return nil
 }
 
-func (p *Compiler) expression() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "expression",
-		Nodes:    []SyntaxNode{},
+func (c *Compiler) expression() error {
+	err := c.term()
+	if err != nil {
+		return err
 	}
 
-	n.Nodes = append(n.Nodes, p.term())
-
-	for !p.isAtEnd() && p.peek(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS) {
-		n.Nodes = append(n.Nodes, p.consume(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS))
-		n.Nodes = append(n.Nodes, p.term())
+	for !c.isAtEnd() && c.peek(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS) {
+		c.consume(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS)
+		err := c.term()
+		if err != nil {
+			return err
+		}
 	}
 
-	return n
+	return nil
 }
 
-func (p *Compiler) term() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "term",
-		Nodes:    []SyntaxNode{},
-	}
+func (c *Compiler) term() error {
+	var err error
 
-	if p.check(scanner.LEFT_PAREN) {
-		n.Nodes = append(n.Nodes, p.expression())
-		p.match(scanner.RIGHT_PAREN)
-	} else if p.peek(scanner.MINUS, scanner.NOT) {
-		n.Nodes = append(n.Nodes, p.consume(scanner.NOT, scanner.MINUS))
-		n.Nodes = append(n.Nodes, p.term())
-	} else if p.peekAhead(scanner.LEFT_BRACKET) {
-		n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
-		p.match(scanner.LEFT_BRACKET)
-		n.Nodes = append(n.Nodes, p.expression())
-		p.match(scanner.RIGHT_BRACKET)
-	} else if p.peekAhead(scanner.DOT, scanner.LEFT_PAREN) {
-		p.subroutineCallInner()
+	if c.check(scanner.LEFT_PAREN) {
+		err = c.expression()
+		c.match(scanner.RIGHT_PAREN)
+	} else if c.peek(scanner.MINUS, scanner.NOT) {
+		c.consume(scanner.NOT, scanner.MINUS)
+		err = c.term()
+	} else if c.peekAhead(scanner.LEFT_BRACKET) {
+		c.consume(scanner.IDENTIFIER)
+		c.match(scanner.LEFT_BRACKET)
+		err = c.expression()
+		c.match(scanner.RIGHT_BRACKET)
+	} else if c.peekAhead(scanner.DOT, scanner.LEFT_PAREN) {
+		err = c.subroutineCallInner()
 	} else {
-		n.Nodes = append(n.Nodes, p.consume(scanner.INT_CONST, scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL, scanner.THIS, scanner.IDENTIFIER))
+		c.consume(scanner.INT_CONST, scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL, scanner.THIS, scanner.IDENTIFIER)
 	}
 
-	return n
+	return err
 }
 
 func (c *Compiler) varInner(kind int) {
