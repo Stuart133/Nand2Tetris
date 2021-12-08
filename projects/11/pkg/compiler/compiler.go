@@ -216,24 +216,24 @@ func (c *Compiler) whileStatement() error {
 }
 
 func (c *Compiler) doStatement() error {
-	c.subroutineCallInner()
+	err := c.subroutineCallInner()
+	if err != nil {
+		return err
+	}
+
 	c.match(scanner.SEMICOLON)
 
 	return nil
 }
 
-func (p *Compiler) returnStatement() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "returnStatement",
-		Nodes:    []SyntaxNode{},
+func (c *Compiler) returnStatement() error {
+	if !c.check(scanner.SEMICOLON) {
+		c.expression()
+		c.match(scanner.SEMICOLON)
 	}
 
-	if !p.check(scanner.SEMICOLON) {
-		n.Nodes = append(n.Nodes, p.expression())
-		p.match(scanner.SEMICOLON)
-	}
-
-	return n
+	err := c.writer.WriteReturn()
+	return err
 }
 
 func (p *Compiler) expressionList() SyntaxNode {
