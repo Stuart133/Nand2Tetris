@@ -28,10 +28,14 @@ func NewCompiler(t []scanner.Token, w io.Writer) Compiler {
 	}
 }
 
-func (p *Compiler) Compile() error {
-	for !p.isAtEnd() {
-		if p.check(scanner.CLASS) {
-			err := p.class()
+func (c *Compiler) Compile() error {
+	for !c.isAtEnd() {
+		if c.check(scanner.CLASS) {
+			err := c.class()
+			if err != nil {
+				return err
+			}
+			err = c.writer.WriteLine()
 			if err != nil {
 				return err
 			}
@@ -43,38 +47,35 @@ func (p *Compiler) Compile() error {
 	return nil
 }
 
-func (p *Compiler) class() error {
-	id := p.consume(scanner.IDENTIFIER)
-	p.match(scanner.LEFT_BRACE)
+func (c *Compiler) class() error {
+	id := c.consume(scanner.IDENTIFIER)
+	c.match(scanner.LEFT_BRACE)
 
-	p.global = newSymbolTable()
+	c.global = newSymbolTable()
 
-	for !p.isAtEnd() && p.peek(scanner.STATIC, scanner.FIELD) {
-		// n.Nodes = append(n.Nodes, p.classVarDec())
+	for !c.isAtEnd() && c.peek(scanner.STATIC, scanner.FIELD) {
+		c.classVarDec()
 	}
 
-	for !p.isAtEnd() && p.peek(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD) {
-		err := p.subroutineDec(id.Lexeme)
+	for !c.isAtEnd() && c.peek(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD) {
+		err := c.subroutineDec(id.Lexeme)
 		if err != nil {
 			return err
 		}
 	}
 
-	p.match(scanner.RIGHT_BRACE)
+	c.match(scanner.RIGHT_BRACE)
 
 	return nil
 }
 
-func (p *Compiler) classVarDec() SyntaxNode {
-	n := SyntaxNode{
-		TypeName: "classVarDec",
-		Nodes:    []SyntaxNode{},
+func (c *Compiler) classVarDec() {
+	kind := c.consume(scanner.STATIC, scanner.FIELD)
+	if kind.Lexeme == "static" {
+		c.varInner(STATIC)
+	} else {
+		c.varInner(FIELD)
 	}
-
-	n.Nodes = append(n.Nodes, p.consume(scanner.STATIC, scanner.FIELD))
-	// n = p.varInner(n)
-
-	return n
 }
 
 func (p *Compiler) subroutineDec(className string) error {
@@ -136,7 +137,7 @@ func (p *Compiler) subroutineBody(className, subroutineName string) error {
 
 func (p *Compiler) varDec() {
 	p.match(scanner.VAR)
-	p.varInner()
+	p.varInner(LOCAL)
 }
 
 func (c *Compiler) statements() error {
@@ -297,15 +298,22 @@ func (p *Compiler) term() SyntaxNode {
 	return n
 }
 
-func (c *Compiler) varInner() {
+func (c *Compiler) varInner(kind int) {
 	typ := c.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER)
 	name := c.consume(scanner.IDENTIFIER)
 
-	c.subroutine.addSymbol(name.Lexeme, typ.Lexeme, LOCAL)
+	var table symbolTable
+	if kind == LOCAL {
+		table = c.subroutine
+	} else {
+		table = c.global
+	}
+
+	table.addSymbol(name.Lexeme, typ.Lexeme, kind)
 
 	for !c.isAtEnd() && c.check(scanner.COMMA) {
 		name = c.consume(scanner.IDENTIFIER)
-		c.subroutine.addSymbol(name.Lexeme, typ.Lexeme, LOCAL)
+		table.addSymbol(name.Lexeme, typ.Lexeme, kind)
 	}
 
 	c.match(scanner.SEMICOLON)

@@ -76,7 +76,13 @@ func (w *VmWriter) WriteFunction(name string, nVars int) error {
 }
 
 func (w *VmWriter) WriteReturn() error {
-	_, err := w.w.Write([]byte("return"))
+	_, err := w.w.Write([]byte("return\n"))
+
+	return err
+}
+
+func (w *VmWriter) WriteLine() error {
+	_, err := w.w.Write([]byte("\n"))
 
 	return err
 }
