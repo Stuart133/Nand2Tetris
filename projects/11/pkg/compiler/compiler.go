@@ -22,11 +22,12 @@ func NewCompiler(t []scanner.Token, w io.Writer) Compiler {
 	return Compiler{
 		source:  t,
 		current: 0,
+		writer:  VmWriter{w: w},
 	}
 }
 
-func (p *Compiler) Parse() []SyntaxNode {
-	stmts := make([]SyntaxNode, 0)
+func (p *Compiler) Compile() error {
+	var err error
 
 	for !p.isAtEnd() {
 		if p.check(scanner.CLASS) {
