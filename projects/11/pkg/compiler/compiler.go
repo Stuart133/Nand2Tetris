@@ -126,8 +126,8 @@ func (p *Compiler) subroutineBody(className, subroutineName string) error {
 
 	nVar := 0
 	for !p.isAtEnd() && p.peek(scanner.VAR) {
-		p.varDec()
-		nVar++
+		c := p.varDec()
+		nVar += c
 	}
 
 	err := p.writer.WriteFunction(fmt.Sprintf("%s.%s", className, subroutineName), nVar)
@@ -144,9 +144,9 @@ func (p *Compiler) subroutineBody(className, subroutineName string) error {
 	return nil
 }
 
-func (p *Compiler) varDec() {
+func (p *Compiler) varDec() int {
 	p.match(scanner.VAR)
-	p.varInner(LOCAL)
+	return p.varInner(LOCAL)
 }
 
 func (c *Compiler) statements() error {
@@ -221,10 +221,18 @@ func (c *Compiler) ifStatement() error {
 
 func (c *Compiler) whileStatement() error {
 	c.match(scanner.LEFT_PAREN)
-	c.expression()
+	err := c.writer.WriteLabel("L1")
+	if err != nil {
+		return err
+	}
+
+	err = c.expression()
+	if err != nil {
+		return err
+	}
 	c.match(scanner.RIGHT_PAREN)
 	c.match(scanner.LEFT_BRACE)
-	err := c.statements()
+	err = c.statements()
 	if err != nil {
 		return err
 	}
@@ -339,7 +347,7 @@ func (c *Compiler) term() error {
 	return err
 }
 
-func (c *Compiler) varInner(kind int) {
+func (c *Compiler) varInner(kind int) int {
 	typ := c.consume(scanner.INT, scanner.CHAR, scanner.BOOLEAN, scanner.IDENTIFIER)
 	name := c.consume(scanner.IDENTIFIER)
 
@@ -352,12 +360,16 @@ func (c *Compiler) varInner(kind int) {
 
 	table.addSymbol(name.Lexeme, typ.Lexeme, kind)
 
+	count := 1
 	for !c.isAtEnd() && c.check(scanner.COMMA) {
+		count++
 		name = c.consume(scanner.IDENTIFIER)
 		table.addSymbol(name.Lexeme, typ.Lexeme, kind)
 	}
 
 	c.match(scanner.SEMICOLON)
+
+	return count
 }
 
 func (c *Compiler) subroutineCallInner() error {

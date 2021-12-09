@@ -9,106 +9,80 @@ type VmWriter struct {
 	w io.Writer
 }
 
-func (w *VmWriter) WritePush(seg, i int) error {
-	_, err := w.w.Write([]byte(fmt.Sprintf("push %s %d\n", getSegment(seg), i)))
-
-	return err
+func (w *VmWriter) WritePush(seg, i int) {
+	_, _ = w.w.Write([]byte(fmt.Sprintf("push %s %d\n", getSegment(seg), i)))
 }
 
-func (w *VmWriter) WriteConstPush(n string) error {
-	_, err := w.w.Write([]byte(fmt.Sprintf("push %s\n", n)))
-
-	return err
+func (w *VmWriter) WriteConstPush(n string) {
+	_, _ = w.w.Write([]byte(fmt.Sprintf("push %s\n", n)))
 }
 
-func (w *VmWriter) WriteKeywordPush(kw string) error {
-	var err error
+func (w *VmWriter) WriteKeywordPush(kw string) {
 	switch kw {
 	case "null":
-		_, err = w.w.Write([]byte("push 0\n"))
+		_, _ = w.w.Write([]byte("push 0\n"))
 	case "true":
-		_, err = w.w.Write([]byte("push 1\n"))
+		_, _ = w.w.Write([]byte("push 1\n"))
 	case "false":
-		_, err = w.w.Write([]byte("push 0\n"))
+		_, _ = w.w.Write([]byte("push 0\n"))
 	}
-
-	return err
 }
 
-func (w *VmWriter) WritePop(seg, i int) error {
-	_, err := w.w.Write([]byte(fmt.Sprintf("pop %s %d\n", getSegment(seg), i)))
-
-	return err
+func (w *VmWriter) WritePop(seg, i int) {
+	_, _ = w.w.Write([]byte(fmt.Sprintf("pop %s %d\n", getSegment(seg), i)))
 }
 
-func (w *VmWriter) WriteArithmetic(symbol string) error {
-	var err error
+func (w *VmWriter) WriteArithmetic(symbol string) {
 	switch symbol {
 	case "+":
-		_, err = w.w.Write([]byte("add\n"))
+		_, _ = w.w.Write([]byte("add\n"))
 	case "-":
-		_, err = w.w.Write([]byte("sub\n"))
+		_, _ = w.w.Write([]byte("sub\n"))
 	case "*":
-		_, err = w.w.Write([]byte("multiply\n"))
+		_, _ = w.w.Write([]byte("multiply\n"))
 	case "/":
-		_, err = w.w.Write([]byte("divide\n"))
+		_, _ = w.w.Write([]byte("divide\n"))
 	case "-1":
-		_, err = w.w.Write([]byte("neg\n"))
+		_, _ = w.w.Write([]byte("neg\n"))
 	case ">":
-		_, err = w.w.Write([]byte("gt\n"))
+		_, _ = w.w.Write([]byte("gt\n"))
 	case "<":
-		_, err = w.w.Write([]byte("lt\n"))
+		_, _ = w.w.Write([]byte("lt\n"))
 	case "&":
-		_, err = w.w.Write([]byte("and\n"))
+		_, _ = w.w.Write([]byte("and\n"))
 	case "|":
-		_, err = w.w.Write([]byte("or\n"))
+		_, _ = w.w.Write([]byte("or\n"))
 	case "!":
-		_, err = w.w.Write([]byte("not\n"))
+		_, _ = w.w.Write([]byte("not\n"))
 	}
-
-	return err
 }
 
-func (w *VmWriter) WriteLabel(label string) error {
-	_, err := w.w.Write([]byte(fmt.Sprintf("label %s\n", label)))
-
-	return err
+func (w *VmWriter) WriteLabel(label string) {
+	_, _ = w.w.Write([]byte(fmt.Sprintf("label %s\n", label)))
 }
 
-func (w *VmWriter) WriteGoto(label string) error {
-	_, err := w.w.Write([]byte(fmt.Sprintf("goto %s\n", label)))
-
-	return err
+func (w *VmWriter) WriteGoto(label string) {
+	_, _ = w.w.Write([]byte(fmt.Sprintf("goto %s\n", label)))
 }
 
-func (w *VmWriter) WriteIf(label string) error {
-	_, err := w.w.Write([]byte(fmt.Sprintf("if-goto %s\n", label)))
-
-	return err
+func (w *VmWriter) WriteIf(label string) {
+	_, _ = w.w.Write([]byte(fmt.Sprintf("if-goto %s\n", label)))
 }
 
-func (w *VmWriter) WriteCall(name string, nArgs int) error {
-	_, err := w.w.Write([]byte(fmt.Sprintf("call %s %d\n", name, nArgs)))
-
-	return err
+func (w *VmWriter) WriteCall(name string, nArgs int) {
+	_, _ = w.w.Write([]byte(fmt.Sprintf("call %s %d\n", name, nArgs)))
 }
 
-func (w *VmWriter) WriteFunction(name string, nVars int) error {
-	_, err := w.w.Write([]byte(fmt.Sprintf("function %s %d\n", name, nVars)))
-
-	return err
+func (w *VmWriter) WriteFunction(name string, nVars int) {
+	_, _ = w.w.Write([]byte(fmt.Sprintf("function %s %d\n", name, nVars)))
 }
 
-func (w *VmWriter) WriteReturn() error {
-	_, err := w.w.Write([]byte("return\n"))
-
-	return err
+func (w *VmWriter) WriteReturn() {
+	_, _ = w.w.Write([]byte("return\n"))
 }
 
-func (w *VmWriter) WriteLine() error {
-	_, err := w.w.Write([]byte("\n"))
-
-	return err
+func (w *VmWriter) WriteLine() {
+	_, _ = w.w.Write([]byte("\n"))
 }
 
 func getSegment(seg int) string {
