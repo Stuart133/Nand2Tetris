@@ -71,6 +71,7 @@ func (c *Compiler) classVarDec() {
 func (c *Compiler) subroutineDec(className string) {
 	c.subroutine = newSymbolTable()
 	c.branchCount = 0
+	c.writer.WriteLine()
 
 	if c.peek(scanner.METHOD) {
 		c.consume(scanner.METHOD)
