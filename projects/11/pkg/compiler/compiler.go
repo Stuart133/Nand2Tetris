@@ -19,6 +19,7 @@ type Compiler struct {
 	global      symbolTable
 	subroutine  symbolTable
 	branchCount int
+	funcReturn  int
 }
 
 func NewCompiler(t []scanner.Token, w io.Writer) Compiler {
@@ -83,7 +84,8 @@ func (c *Compiler) subroutineDec(className string) {
 	}
 
 	// TODO: Handle return type
-	c.consume(scanner.VOID, scanner.IDENTIFIER, scanner.INT, scanner.CHAR, scanner.BOOLEAN)
+	rt := c.consume(scanner.VOID, scanner.IDENTIFIER, scanner.INT, scanner.CHAR, scanner.BOOLEAN)
+	c.funcReturn = rt.Type
 	name := c.consume(scanner.IDENTIFIER)
 
 	c.match(scanner.LEFT_PAREN)
@@ -215,12 +217,18 @@ func (c *Compiler) whileStatement() {
 func (c *Compiler) doStatement() {
 	c.subroutineCallInner()
 	c.match(scanner.SEMICOLON)
+
+	c.writer.WritePop(TEMP, 0)
 }
 
 func (c *Compiler) returnStatement() {
 	if !c.check(scanner.SEMICOLON) {
 		c.expression()
 		c.match(scanner.SEMICOLON)
+	}
+
+	if c.funcReturn == scanner.VOID {
+		c.writer.WriteConstPush("0")
 	}
 
 	c.writer.WriteReturn()

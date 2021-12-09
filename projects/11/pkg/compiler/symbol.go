@@ -6,6 +6,7 @@ const (
 	ARGUMENT
 	LOCAL
 	POINTER
+	TEMP
 )
 
 type symbol struct {
