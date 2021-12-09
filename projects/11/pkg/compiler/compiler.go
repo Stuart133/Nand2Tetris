@@ -13,11 +13,12 @@ type SyntaxNode struct {
 }
 
 type Compiler struct {
-	source     []scanner.Token
-	current    int
-	writer     VmWriter
-	global     symbolTable
-	subroutine symbolTable
+	source      []scanner.Token
+	current     int
+	writer      VmWriter
+	global      symbolTable
+	subroutine  symbolTable
+	branchCount int
 }
 
 func NewCompiler(t []scanner.Token, w io.Writer) Compiler {
@@ -31,14 +32,8 @@ func NewCompiler(t []scanner.Token, w io.Writer) Compiler {
 func (c *Compiler) Compile() error {
 	for !c.isAtEnd() {
 		if c.check(scanner.CLASS) {
-			err := c.class()
-			if err != nil {
-				return err
-			}
-			err = c.writer.WriteLine()
-			if err != nil {
-				return err
-			}
+			c.class()
+			c.writer.WriteLine()
 		} else {
 			panic("Unexpected token")
 		}
@@ -47,7 +42,7 @@ func (c *Compiler) Compile() error {
 	return nil
 }
 
-func (c *Compiler) class() error {
+func (c *Compiler) class() {
 	id := c.consume(scanner.IDENTIFIER)
 	c.match(scanner.LEFT_BRACE)
 
@@ -58,15 +53,10 @@ func (c *Compiler) class() error {
 	}
 
 	for !c.isAtEnd() && c.peek(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD) {
-		err := c.subroutineDec(id.Lexeme)
-		if err != nil {
-			return err
-		}
+		c.subroutineDec(id.Lexeme)
 	}
 
 	c.match(scanner.RIGHT_BRACE)
-
-	return nil
 }
 
 func (c *Compiler) classVarDec() {
@@ -78,8 +68,9 @@ func (c *Compiler) classVarDec() {
 	}
 }
 
-func (c *Compiler) subroutineDec(className string) error {
+func (c *Compiler) subroutineDec(className string) {
 	c.subroutine = newSymbolTable()
+	c.branchCount = 0
 
 	if c.peek(scanner.METHOD) {
 		c.consume(scanner.METHOD)
@@ -97,12 +88,7 @@ func (c *Compiler) subroutineDec(className string) error {
 	c.parameterList()
 	c.match(scanner.RIGHT_PAREN)
 
-	err := c.subroutineBody(className, name.Lexeme)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	c.subroutineBody(className, name.Lexeme)
 }
 
 func (p *Compiler) parameterList() {
@@ -121,7 +107,7 @@ func (p *Compiler) parameterList() {
 	}
 }
 
-func (p *Compiler) subroutineBody(className, subroutineName string) error {
+func (p *Compiler) subroutineBody(className, subroutineName string) {
 	p.match(scanner.LEFT_BRACE)
 
 	nVar := 0
@@ -130,18 +116,9 @@ func (p *Compiler) subroutineBody(className, subroutineName string) error {
 		nVar += c
 	}
 
-	err := p.writer.WriteFunction(fmt.Sprintf("%s.%s", className, subroutineName), nVar)
-	if err != nil {
-		return err
-	}
-
-	err = p.statements()
-	if err != nil {
-		return err
-	}
+	p.writer.WriteFunction(fmt.Sprintf("%s.%s", className, subroutineName), nVar)
+	p.statements()
 	p.match(scanner.RIGHT_BRACE)
-
-	return nil
 }
 
 func (p *Compiler) varDec() int {
@@ -149,29 +126,26 @@ func (p *Compiler) varDec() int {
 	return p.varInner(LOCAL)
 }
 
-func (c *Compiler) statements() error {
-	var err error
+func (c *Compiler) statements() {
 	for !c.isAtEnd() && !c.peek(scanner.RIGHT_BRACE) {
 		switch {
 		case c.check(scanner.LET):
-			err = c.letStatement()
+			c.letStatement()
 		case c.check(scanner.IF):
-			err = c.ifStatement()
+			c.ifStatement()
 		case c.check(scanner.WHILE):
-			err = c.whileStatement()
+			c.whileStatement()
 		case c.check(scanner.DO):
-			err = c.doStatement()
+			c.doStatement()
 		case c.check(scanner.RETURN):
-			err = c.returnStatement()
+			c.returnStatement()
 		default:
 			panic(fmt.Sprintf("Unexpected symbol: %v", c.source[c.current]))
 		}
 	}
-
-	return err
 }
 
-func (c *Compiler) letStatement() error {
+func (c *Compiler) letStatement() {
 	name := c.consume(scanner.IDENTIFIER)
 	symbol, _ := c.getSymbol(name.Lexeme)
 
@@ -181,100 +155,76 @@ func (c *Compiler) letStatement() error {
 	// }
 
 	c.match(scanner.EQUALS)
-	err := c.expression()
-	if err != nil {
-		return err
-	}
+	c.expression()
 	c.match(scanner.SEMICOLON)
-	err = c.writer.WritePop(symbol.kind, symbol.count)
-
-	return err
+	c.writer.WritePop(symbol.kind, symbol.count)
 }
 
-// TOOD: FINISH IF
-func (c *Compiler) ifStatement() error {
+func (c *Compiler) ifStatement() {
+	bc := c.branchCount
+	c.branchCount += 2
+
 	c.match(scanner.LEFT_PAREN)
-	err := c.expression()
-	if err != nil {
-		return err
-	}
+	c.expression()
 	c.match(scanner.RIGHT_PAREN)
+	c.writer.WriteArithmetic("~")
+	c.writer.WriteIf(fmt.Sprintf("L%d", bc))
 
 	c.match(scanner.LEFT_BRACE)
-	err = c.statements()
-	if err != nil {
-		return err
-	}
+	c.statements()
 	c.match(scanner.RIGHT_BRACE)
+	c.writer.WriteGoto(fmt.Sprintf("L%d", bc+1))
 
+	c.writer.WriteLabel(fmt.Sprintf("L%d", bc))
 	if c.check(scanner.ELSE) {
 		c.match(scanner.LEFT_BRACE)
-		err := c.statements()
-		if err != nil {
-			return err
-		}
+		c.statements()
 		c.match(scanner.RIGHT_BRACE)
 	}
+	c.writer.WriteLabel(fmt.Sprintf("L%d", bc+1))
 
-	return nil
+	c.branchCount += 2
 }
 
-func (c *Compiler) whileStatement() error {
+func (c *Compiler) whileStatement() {
+	bc := c.branchCount
+	c.branchCount += 2
+
 	c.match(scanner.LEFT_PAREN)
-	err := c.writer.WriteLabel("L1")
-	if err != nil {
-		return err
-	}
-
-	err = c.expression()
-	if err != nil {
-		return err
-	}
+	c.writer.WriteLabel(fmt.Sprintf("L%d", bc))
+	c.expression()
 	c.match(scanner.RIGHT_PAREN)
-	c.match(scanner.LEFT_BRACE)
-	err = c.statements()
-	if err != nil {
-		return err
-	}
+	c.writer.WriteArithmetic("~")
+	c.writer.WriteIf(fmt.Sprintf("L%d", bc+1))
 
+	c.match(scanner.LEFT_BRACE)
+	c.statements()
+	c.writer.WriteGoto(fmt.Sprintf("L%d", bc))
 	c.match(scanner.RIGHT_BRACE)
 
-	return nil
+	c.writer.WriteLabel(fmt.Sprintf("L%d", bc+1))
 }
 
-func (c *Compiler) doStatement() error {
-	err := c.subroutineCallInner()
-	if err != nil {
-		return err
-	}
-
+func (c *Compiler) doStatement() {
+	c.subroutineCallInner()
 	c.match(scanner.SEMICOLON)
-
-	return nil
 }
 
-func (c *Compiler) returnStatement() error {
+func (c *Compiler) returnStatement() {
 	if !c.check(scanner.SEMICOLON) {
-		err := c.expression()
-		if err != nil {
-			return err
-		}
+		c.expression()
 		c.match(scanner.SEMICOLON)
 	}
 
-	err := c.writer.WriteReturn()
-	return err
+	c.writer.WriteReturn()
 }
 
-func (c *Compiler) expressionList() (int, error) {
+func (c *Compiler) expressionList() int {
 	count := 0
 	for !c.isAtEnd() && !c.peek(scanner.RIGHT_PAREN) {
 		for !c.isAtEnd() {
 			count++
-			err := c.expression()
-			if err != nil {
-				return 0, err
-			}
+			c.expression()
 
 			if !c.check(scanner.COMMA) {
 				break
@@ -282,69 +232,51 @@ func (c *Compiler) expressionList() (int, error) {
 		}
 	}
 
-	return count, nil
+	return count
 }
 
-func (c *Compiler) expression() error {
-	err := c.term()
-	if err != nil {
-		return err
-	}
+func (c *Compiler) expression() {
+	c.term()
 
 	for !c.isAtEnd() && c.peek(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS) {
 		op := c.consume(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS)
-		err := c.term()
-		if err != nil {
-			return err
-		}
-		err = c.writer.WriteArithmetic(op.Lexeme)
-		if err != nil {
-			return err
-		}
+		c.term()
+		c.writer.WriteArithmetic(op.Lexeme)
 	}
-
-	return nil
 }
 
-func (c *Compiler) term() error {
-	var err error
-
+func (c *Compiler) term() {
 	if c.check(scanner.LEFT_PAREN) {
-		err = c.expression()
+		c.expression()
 		c.match(scanner.RIGHT_PAREN)
 	} else if c.peek(scanner.MINUS, scanner.NOT) {
 		op := c.consume(scanner.NOT, scanner.MINUS)
-		err = c.term()
-		if err != nil {
-			return err
-		}
-		if op.Lexeme == "-" {
-			err = c.writer.WriteArithmetic("-1")
+		c.term()
+		if op.Type == scanner.MINUS {
+			c.writer.WriteArithmetic("-1")
 		} else {
-			err = c.writer.WriteArithmetic(op.Lexeme)
+			c.writer.WriteArithmetic(op.Lexeme)
 		}
 	} else if c.peekAhead(scanner.LEFT_BRACKET) {
 		c.consume(scanner.IDENTIFIER)
 		c.match(scanner.LEFT_BRACKET)
-		err = c.expression()
+		c.expression()
 		c.match(scanner.RIGHT_BRACKET)
 	} else if c.peekAhead(scanner.DOT, scanner.LEFT_PAREN) {
-		err = c.subroutineCallInner()
+		c.subroutineCallInner()
 	} else if c.peek(scanner.THIS, scanner.IDENTIFIER) {
 		v := c.consume(scanner.THIS, scanner.IDENTIFIER)
 		symbol, _ := c.getSymbol(v.Lexeme)
-		err = c.writer.WritePush(symbol.kind, symbol.count)
+		c.writer.WritePush(symbol.kind, symbol.count)
 	} else if c.peek(scanner.INT_CONST) {
 		n := c.consume(scanner.INT_CONST)
-		err = c.writer.WriteConstPush(n.Lexeme)
+		c.writer.WriteConstPush(n.Lexeme)
 	} else if c.peek(scanner.STRING_CONST) {
 		c.consume(scanner.STRING_CONST)
 	} else {
 		n := c.consume(scanner.TRUE, scanner.FALSE, scanner.NULL)
-		err = c.writer.WriteKeywordPush(n.Lexeme)
+		c.writer.WriteKeywordPush(n.Lexeme)
 	}
-
-	return err
 }
 
 func (c *Compiler) varInner(kind int) int {
@@ -372,7 +304,7 @@ func (c *Compiler) varInner(kind int) int {
 	return count
 }
 
-func (c *Compiler) subroutineCallInner() error {
+func (c *Compiler) subroutineCallInner() {
 	name := c.consume(scanner.IDENTIFIER).Lexeme
 	if c.check(scanner.DOT) {
 		subroutineName := c.consume(scanner.IDENTIFIER)
@@ -384,25 +316,14 @@ func (c *Compiler) subroutineCallInner() error {
 		}
 	} else {
 		symbol, _ := c.getSymbol("this")
-		err := c.writer.WritePush(symbol.kind, symbol.count)
-		if err != nil {
-			return err
-		}
+		c.writer.WritePush(symbol.kind, symbol.count)
 	}
 
 	c.match(scanner.LEFT_PAREN)
-	count, err := c.expressionList()
-	if err != nil {
-		return err
-	}
+	count := c.expressionList()
 	c.match(scanner.RIGHT_PAREN)
 
-	err = c.writer.WriteCall(name, count)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	c.writer.WriteCall(name, count)
 }
 
 func (c *Compiler) getSymbol(name string) (symbol, bool) {
@@ -415,22 +336,17 @@ func (c *Compiler) getSymbol(name string) (symbol, bool) {
 	return s, v
 }
 
-func (p *Compiler) consume(types ...int) SyntaxNode {
+func (p *Compiler) consume(types ...int) scanner.Token {
 	c := p.source[p.current]
 
 	for _, t := range types {
 		if c.Type == t {
 			p.advance()
-			return SyntaxNode{
-				TypeName: c.TypeName,
-				Lexeme:   c.Lexeme,
-				Nodes:    []SyntaxNode{},
-			}
+			return c
 		}
 	}
 
-	fmt.Printf("Got token %v\n", c)
-	panic("Unexpected token")
+	panic(fmt.Sprintf("Unexpected token: %v\n", c))
 }
 
 func (p *Compiler) match(types ...int) {

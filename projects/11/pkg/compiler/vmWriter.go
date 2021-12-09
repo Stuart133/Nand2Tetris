@@ -44,6 +44,8 @@ func (w *VmWriter) WriteArithmetic(symbol string) {
 		_, _ = w.w.Write([]byte("divide\n"))
 	case "-1":
 		_, _ = w.w.Write([]byte("neg\n"))
+	case "~":
+		_, _ = w.w.Write([]byte("not\n"))
 	case ">":
 		_, _ = w.w.Write([]byte("gt\n"))
 	case "<":
