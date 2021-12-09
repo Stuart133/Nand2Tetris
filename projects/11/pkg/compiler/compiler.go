@@ -78,20 +78,25 @@ func (c *Compiler) classVarDec() {
 	}
 }
 
-func (p *Compiler) subroutineDec(className string) error {
-	p.subroutine = newSymbolTable()
+func (c *Compiler) subroutineDec(className string) error {
+	c.subroutine = newSymbolTable()
 
-	p.consume(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD)
-	// TODO: Handle CTOR & METHOD
-	p.consume(scanner.VOID, scanner.IDENTIFIER)
+	if c.peek(scanner.METHOD) {
+		c.consume(scanner.METHOD)
+		c.subroutine.addSymbol("this", className, ARGUMENT)
+	} else {
+		c.consume(scanner.CONSTRUCTOR, scanner.FUNCTION)
+	}
+
 	// TODO: Handle return type
-	name := p.consume(scanner.IDENTIFIER)
+	c.consume(scanner.VOID, scanner.IDENTIFIER)
+	name := c.consume(scanner.IDENTIFIER)
 
-	p.match(scanner.LEFT_PAREN)
-	p.parameterList()
-	p.match(scanner.RIGHT_PAREN)
+	c.match(scanner.LEFT_PAREN)
+	c.parameterList()
+	c.match(scanner.RIGHT_PAREN)
 
-	err := p.subroutineBody(className, name.Lexeme)
+	err := c.subroutineBody(className, name.Lexeme)
 	if err != nil {
 		return err
 	}
@@ -287,8 +292,12 @@ func (c *Compiler) term() error {
 		c.match(scanner.RIGHT_BRACKET)
 	} else if c.peekAhead(scanner.DOT, scanner.LEFT_PAREN) {
 		err = c.subroutineCallInner()
+	} else if c.peek(scanner.THIS, scanner.IDENTIFIER) {
+		v := c.consume(scanner.THIS, scanner.IDENTIFIER)
+		symbol, _ := c.getSymbol(v.Lexeme)
+		c.writer.WritePush(symbol.kind, symbol.count)
 	} else {
-		c.consume(scanner.INT_CONST, scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL, scanner.THIS, scanner.IDENTIFIER)
+		c.consume(scanner.INT_CONST, scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL)
 	}
 
 	return err
