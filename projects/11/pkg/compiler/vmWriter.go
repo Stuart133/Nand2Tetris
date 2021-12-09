@@ -99,6 +99,8 @@ func getSegment(seg int) string {
 		return "argument"
 	case LOCAL:
 		return "local"
+	case POINTER:
+		return "pointer"
 	default:
 		panic("Unexpected segment type")
 	}

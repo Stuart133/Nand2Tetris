@@ -73,12 +73,13 @@ func (c *Compiler) subroutineDec(className string) {
 	c.branchCount = 0
 	c.writer.WriteLine()
 
+	var t int
 	if c.peek(scanner.METHOD) {
-		c.consume(scanner.METHOD)
+		t = c.consume(scanner.METHOD).Type
 		c.subroutine.addSymbol("this", className, ARGUMENT)
 	} else {
 		// TODO: Constructors
-		c.consume(scanner.CONSTRUCTOR, scanner.FUNCTION)
+		t = c.consume(scanner.CONSTRUCTOR, scanner.FUNCTION).Type
 	}
 
 	// TODO: Handle return type
@@ -89,7 +90,7 @@ func (c *Compiler) subroutineDec(className string) {
 	c.parameterList()
 	c.match(scanner.RIGHT_PAREN)
 
-	c.subroutineBody(className, name.Lexeme)
+	c.subroutineBody(className, name.Lexeme, t)
 }
 
 func (p *Compiler) parameterList() {
@@ -108,7 +109,7 @@ func (p *Compiler) parameterList() {
 	}
 }
 
-func (p *Compiler) subroutineBody(className, subroutineName string) {
+func (p *Compiler) subroutineBody(className, subroutineName string, subType int) {
 	p.match(scanner.LEFT_BRACE)
 
 	nVar := 0
@@ -118,6 +119,11 @@ func (p *Compiler) subroutineBody(className, subroutineName string) {
 	}
 
 	p.writer.WriteFunction(fmt.Sprintf("%s.%s", className, subroutineName), nVar)
+	if subType == scanner.METHOD {
+		p.writer.WritePush(ARGUMENT, 0)
+		p.writer.WritePop(POINTER, 0)
+	}
+
 	p.statements()
 	p.match(scanner.RIGHT_BRACE)
 }
@@ -313,6 +319,7 @@ func (c *Compiler) subroutineCallInner() {
 		if !v {
 			name = fmt.Sprintf("%s.%s", name, subroutineName.Lexeme)
 		} else {
+			c.writer.WritePush(symbol.kind, symbol.count)
 			name = fmt.Sprintf("%s.%s", symbol.typ, subroutineName.Lexeme)
 		}
 	} else {

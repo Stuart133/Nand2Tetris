@@ -5,6 +5,7 @@ const (
 	STATIC
 	ARGUMENT
 	LOCAL
+	POINTER
 )
 
 type symbol struct {
