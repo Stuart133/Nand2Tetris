@@ -21,6 +21,20 @@ func (w *VmWriter) WriteConstPush(n string) error {
 	return err
 }
 
+func (w *VmWriter) WriteKeywordPush(kw string) error {
+	var err error
+	switch kw {
+	case "null":
+		_, err = w.w.Write([]byte("push 0\n"))
+	case "true":
+		_, err = w.w.Write([]byte("push 1\n"))
+	case "false":
+		_, err = w.w.Write([]byte("push 0\n"))
+	}
+
+	return err
+}
+
 func (w *VmWriter) WritePop(seg, i int) error {
 	_, err := w.w.Write([]byte(fmt.Sprintf("pop %s %d\n", getSegment(seg), i)))
 
@@ -34,6 +48,10 @@ func (w *VmWriter) WriteArithmetic(symbol string) error {
 		_, err = w.w.Write([]byte("add\n"))
 	case "-":
 		_, err = w.w.Write([]byte("sub\n"))
+	case "*":
+		_, err = w.w.Write([]byte("multiply\n"))
+	case "/":
+		_, err = w.w.Write([]byte("divide\n"))
 	case "-1":
 		_, err = w.w.Write([]byte("neg\n"))
 	case ">":

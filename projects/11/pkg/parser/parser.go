@@ -78,7 +78,7 @@ func (p *Parser) subroutineDec() SyntaxNode {
 	}
 
 	n.Nodes = append(n.Nodes, p.consume(scanner.CONSTRUCTOR, scanner.FUNCTION, scanner.METHOD))
-	n.Nodes = append(n.Nodes, p.consume(scanner.VOID, scanner.IDENTIFIER))
+	n.Nodes = append(n.Nodes, p.consume(scanner.VOID, scanner.IDENTIFIER, scanner.INT, scanner.BOOLEAN))
 	n.Nodes = append(n.Nodes, p.consume(scanner.IDENTIFIER))
 	p.match(scanner.LEFT_PAREN)
 	n.Nodes = append(n.Nodes, p.parameterList())

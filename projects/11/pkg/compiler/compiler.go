@@ -90,7 +90,7 @@ func (c *Compiler) subroutineDec(className string) error {
 	}
 
 	// TODO: Handle return type
-	c.consume(scanner.VOID, scanner.IDENTIFIER)
+	c.consume(scanner.VOID, scanner.IDENTIFIER, scanner.INT, scanner.CHAR, scanner.BOOLEAN)
 	name := c.consume(scanner.IDENTIFIER)
 
 	c.match(scanner.LEFT_PAREN)
@@ -135,7 +135,10 @@ func (p *Compiler) subroutineBody(className, subroutineName string) error {
 		return err
 	}
 
-	p.statements()
+	err = p.statements()
+	if err != nil {
+		return err
+	}
 	p.match(scanner.RIGHT_BRACE)
 
 	return nil
@@ -178,9 +181,12 @@ func (c *Compiler) letStatement() error {
 	// }
 
 	c.match(scanner.EQUALS)
-	c.expression()
+	err := c.expression()
+	if err != nil {
+		return err
+	}
 	c.match(scanner.SEMICOLON)
-	err := c.writer.WritePop(symbol.kind, symbol.count)
+	err = c.writer.WritePop(symbol.kind, symbol.count)
 
 	return err
 }
@@ -188,21 +194,27 @@ func (c *Compiler) letStatement() error {
 // TOOD: FINISH IF
 func (c *Compiler) ifStatement() error {
 	c.match(scanner.LEFT_PAREN)
-	c.expression()
+	err := c.expression()
+	if err != nil {
+		return err
+	}
 	c.match(scanner.RIGHT_PAREN)
 
 	c.match(scanner.LEFT_BRACE)
-	err := c.statements()
+	err = c.statements()
 	if err != nil {
 		return err
 	}
 	c.match(scanner.RIGHT_BRACE)
 
-	// if p.check(scanner.ELSE) {
-	// 	p.match(scanner.LEFT_BRACE)
-	// 	n.Nodes = append(n.Nodes, p.statements())
-	// 	p.match(scanner.RIGHT_BRACE)
-	// }
+	if c.check(scanner.ELSE) {
+		c.match(scanner.LEFT_BRACE)
+		err := c.statements()
+		if err != nil {
+			return err
+		}
+		c.match(scanner.RIGHT_BRACE)
+	}
 
 	return nil
 }
@@ -235,7 +247,10 @@ func (c *Compiler) doStatement() error {
 
 func (c *Compiler) returnStatement() error {
 	if !c.check(scanner.SEMICOLON) {
-		c.expression()
+		err := c.expression()
+		if err != nil {
+			return err
+		}
 		c.match(scanner.SEMICOLON)
 	}
 
@@ -243,12 +258,14 @@ func (c *Compiler) returnStatement() error {
 	return err
 }
 
-func (c *Compiler) expressionList() error {
+func (c *Compiler) expressionList() (int, error) {
+	count := 0
 	for !c.isAtEnd() && !c.peek(scanner.RIGHT_PAREN) {
 		for !c.isAtEnd() {
+			count++
 			err := c.expression()
 			if err != nil {
-				return err
+				return 0, err
 			}
 
 			if !c.check(scanner.COMMA) {
@@ -257,7 +274,7 @@ func (c *Compiler) expressionList() error {
 		}
 	}
 
-	return nil
+	return count, nil
 }
 
 func (c *Compiler) expression() error {
@@ -272,7 +289,10 @@ func (c *Compiler) expression() error {
 		if err != nil {
 			return err
 		}
-		c.writer.WriteArithmetic(op.Lexeme)
+		err = c.writer.WriteArithmetic(op.Lexeme)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -285,8 +305,16 @@ func (c *Compiler) term() error {
 		err = c.expression()
 		c.match(scanner.RIGHT_PAREN)
 	} else if c.peek(scanner.MINUS, scanner.NOT) {
-		c.consume(scanner.NOT, scanner.MINUS)
+		op := c.consume(scanner.NOT, scanner.MINUS)
 		err = c.term()
+		if err != nil {
+			return err
+		}
+		if op.Lexeme == "-" {
+			err = c.writer.WriteArithmetic("-1")
+		} else {
+			err = c.writer.WriteArithmetic(op.Lexeme)
+		}
 	} else if c.peekAhead(scanner.LEFT_BRACKET) {
 		c.consume(scanner.IDENTIFIER)
 		c.match(scanner.LEFT_BRACKET)
@@ -297,12 +325,15 @@ func (c *Compiler) term() error {
 	} else if c.peek(scanner.THIS, scanner.IDENTIFIER) {
 		v := c.consume(scanner.THIS, scanner.IDENTIFIER)
 		symbol, _ := c.getSymbol(v.Lexeme)
-		c.writer.WritePush(symbol.kind, symbol.count)
+		err = c.writer.WritePush(symbol.kind, symbol.count)
 	} else if c.peek(scanner.INT_CONST) {
 		n := c.consume(scanner.INT_CONST)
-		c.writer.WriteConstPush(n.Lexeme)
+		err = c.writer.WriteConstPush(n.Lexeme)
+	} else if c.peek(scanner.STRING_CONST) {
+		c.consume(scanner.STRING_CONST)
 	} else {
-		c.consume(scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL)
+		n := c.consume(scanner.TRUE, scanner.FALSE, scanner.NULL)
+		err = c.writer.WriteKeywordPush(n.Lexeme)
 	}
 
 	return err
@@ -347,12 +378,14 @@ func (c *Compiler) subroutineCallInner() error {
 		}
 	}
 
-	// TODO: Wire up numbers
 	c.match(scanner.LEFT_PAREN)
-	c.expressionList()
+	count, err := c.expressionList()
+	if err != nil {
+		return err
+	}
 	c.match(scanner.RIGHT_PAREN)
 
-	err := c.writer.WriteCall(name, 0)
+	err = c.writer.WriteCall(name, count)
 	if err != nil {
 		return err
 	}
