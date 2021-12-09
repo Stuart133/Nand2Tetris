@@ -85,6 +85,7 @@ func (c *Compiler) subroutineDec(className string) error {
 		c.consume(scanner.METHOD)
 		c.subroutine.addSymbol("this", className, ARGUMENT)
 	} else {
+		// TODO: Constructors
 		c.consume(scanner.CONSTRUCTOR, scanner.FUNCTION)
 	}
 
@@ -158,7 +159,7 @@ func (c *Compiler) statements() error {
 		case c.check(scanner.DO):
 			err = c.doStatement()
 		case c.check(scanner.RETURN):
-			c.returnStatement()
+			err = c.returnStatement()
 		default:
 			panic(fmt.Sprintf("Unexpected symbol: %v", c.source[c.current]))
 		}
@@ -266,11 +267,12 @@ func (c *Compiler) expression() error {
 	}
 
 	for !c.isAtEnd() && c.peek(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS) {
-		c.consume(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS)
+		op := c.consume(scanner.PLUS, scanner.MINUS, scanner.STAR, scanner.SLASH, scanner.AND, scanner.OR, scanner.LESS_THAN, scanner.GREATER_THAN, scanner.EQUALS)
 		err := c.term()
 		if err != nil {
 			return err
 		}
+		c.writer.WriteArithmetic(op.Lexeme)
 	}
 
 	return nil
@@ -296,8 +298,11 @@ func (c *Compiler) term() error {
 		v := c.consume(scanner.THIS, scanner.IDENTIFIER)
 		symbol, _ := c.getSymbol(v.Lexeme)
 		c.writer.WritePush(symbol.kind, symbol.count)
+	} else if c.peek(scanner.INT_CONST) {
+		n := c.consume(scanner.INT_CONST)
+		c.writer.WriteConstPush(n.Lexeme)
 	} else {
-		c.consume(scanner.INT_CONST, scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL)
+		c.consume(scanner.STRING_CONST, scanner.TRUE, scanner.FALSE, scanner.NULL)
 	}
 
 	return err

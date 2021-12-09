@@ -15,6 +15,12 @@ func (w *VmWriter) WritePush(seg, i int) error {
 	return err
 }
 
+func (w *VmWriter) WriteConstPush(n string) error {
+	_, err := w.w.Write([]byte(fmt.Sprintf("push %s\n", n)))
+
+	return err
+}
+
 func (w *VmWriter) WritePop(seg, i int) error {
 	_, err := w.w.Write([]byte(fmt.Sprintf("pop %s %d\n", getSegment(seg), i)))
 
