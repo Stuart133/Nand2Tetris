@@ -7,6 +7,7 @@ const (
 	LOCAL
 	POINTER
 	TEMP
+	THAT
 )
 
 type symbol struct {

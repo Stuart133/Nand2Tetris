@@ -158,10 +158,10 @@ func (c *Compiler) letStatement() {
 	name := c.consume(scanner.IDENTIFIER)
 	symbol, _ := c.getSymbol(name.Lexeme)
 
-	// if p.check(scanner.LEFT_BRACKET) {
-	// 	n.Nodes = append(n.Nodes, p.expression())
-	// 	p.match(scanner.RIGHT_BRACKET)
-	// }
+	if c.check(scanner.LEFT_BRACKET) {
+		c.expression()
+		c.match(scanner.RIGHT_BRACKET)
+	}
 
 	c.match(scanner.EQUALS)
 	c.expression()
@@ -273,10 +273,15 @@ func (c *Compiler) term() {
 			c.writer.WriteArithmetic(op.Lexeme)
 		}
 	} else if c.peekAhead(scanner.LEFT_BRACKET) {
-		c.consume(scanner.IDENTIFIER)
+		v := c.consume(scanner.IDENTIFIER)
+		symbol, _ := c.getSymbol(v.Lexeme)
+		c.writer.WritePush(symbol.kind, symbol.count)
 		c.match(scanner.LEFT_BRACKET)
 		c.expression()
 		c.match(scanner.RIGHT_BRACKET)
+		c.writer.WriteArithmetic("+")
+		c.writer.WritePop(POINTER, 1)
+		c.writer.WritePush(THAT, 0)
 	} else if c.peekAhead(scanner.DOT, scanner.LEFT_PAREN) {
 		c.subroutineCallInner()
 	} else if c.peek(scanner.THIS, scanner.IDENTIFIER) {
@@ -287,7 +292,13 @@ func (c *Compiler) term() {
 		n := c.consume(scanner.INT_CONST)
 		c.writer.WriteConstPush(n.Lexeme)
 	} else if c.peek(scanner.STRING_CONST) {
-		c.consume(scanner.STRING_CONST)
+		s := c.consume(scanner.STRING_CONST)
+		c.writer.WriteConstPush(fmt.Sprintf("%d", len(s.Lexeme)))
+		c.writer.WriteCall("String.new", 1)
+		for i := range s.Lexeme {
+			c.writer.WriteConstPush(fmt.Sprintf("%d", s.Lexeme[i]))
+			c.writer.WriteCall("String.appendChar", 2)
+		}
 	} else {
 		n := c.consume(scanner.TRUE, scanner.FALSE, scanner.NULL)
 		c.writer.WriteKeywordPush(n.Lexeme)
