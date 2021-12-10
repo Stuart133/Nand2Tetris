@@ -159,14 +159,24 @@ func (c *Compiler) letStatement() {
 	symbol, _ := c.getSymbol(name.Lexeme)
 
 	if c.check(scanner.LEFT_BRACKET) {
+		c.writer.WritePush(symbol.kind, symbol.count)
 		c.expression()
 		c.match(scanner.RIGHT_BRACKET)
-	}
+		c.writer.WriteArithmetic("+")
 
-	c.match(scanner.EQUALS)
-	c.expression()
-	c.match(scanner.SEMICOLON)
-	c.writer.WritePop(symbol.kind, symbol.count)
+		c.match(scanner.EQUALS)
+		c.expression()
+		c.match(scanner.SEMICOLON)
+		c.writer.WritePop(TEMP, 0)
+		c.writer.WritePop(POINTER, 1)
+		c.writer.WritePush(TEMP, 0)
+		c.writer.WritePop(THAT, 0)
+	} else {
+		c.match(scanner.EQUALS)
+		c.expression()
+		c.match(scanner.SEMICOLON)
+		c.writer.WritePop(symbol.kind, symbol.count)
+	}
 }
 
 func (c *Compiler) ifStatement() {
