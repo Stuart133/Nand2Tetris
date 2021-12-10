@@ -14,17 +14,19 @@ func (w *VmWriter) WritePush(seg, i int) {
 }
 
 func (w *VmWriter) WriteConstPush(n string) {
-	_, _ = w.w.Write([]byte(fmt.Sprintf("push %s\n", n)))
+	_, _ = w.w.Write([]byte(fmt.Sprintf("push constant %s\n", n)))
 }
 
 func (w *VmWriter) WriteKeywordPush(kw string) {
 	switch kw {
 	case "null":
-		_, _ = w.w.Write([]byte("push 0\n"))
+		_, _ = w.w.Write([]byte("push constant 0\n"))
 	case "true":
-		_, _ = w.w.Write([]byte("push 1\n"))
+		_, _ = w.w.Write([]byte("push constant 0\n"))
+		_, _ = w.w.Write([]byte("push constant 1\n"))
+		_, _ = w.w.Write([]byte("sub\n"))
 	case "false":
-		_, _ = w.w.Write([]byte("push 0\n"))
+		_, _ = w.w.Write([]byte("push constant 0\n"))
 	}
 }
 
@@ -39,9 +41,9 @@ func (w *VmWriter) WriteArithmetic(symbol string) {
 	case "-":
 		_, _ = w.w.Write([]byte("sub\n"))
 	case "*":
-		_, _ = w.w.Write([]byte("multiply\n"))
+		_, _ = w.w.Write([]byte("call Math.multiply 2\n"))
 	case "/":
-		_, _ = w.w.Write([]byte("divide\n"))
+		_, _ = w.w.Write([]byte("call Math.divide 2\n"))
 	case "-1":
 		_, _ = w.w.Write([]byte("neg\n"))
 	case "~":

@@ -2,7 +2,6 @@ package main
 
 import (
 	"compiler/pkg/compiler"
-	"compiler/pkg/parser"
 	"compiler/pkg/scanner"
 	"fmt"
 	"io/ioutil"
@@ -34,16 +33,7 @@ func main() {
 
 		fmt.Println(f.Name())
 
-		p := parser.NewParser(tokens)
-		stmts := p.Parse()
-
-		oPath := fmt.Sprintf("%s\\%s.xml", path, getFileName(f.Name()))
-		err = saveFile(oPath, stmts)
-		if err != nil {
-			fmt.Printf("There was an error writing the the output file: %v\n", err)
-			os.Exit(1)
-		}
-		oPath = fmt.Sprintf("%s\\%s.vm", path, getFileName(f.Name()))
+		oPath := fmt.Sprintf("%s\\%s.vm", path, getFileName(f.Name()))
 		err = compileAndSave(oPath, tokens)
 		if err != nil {
 			fmt.Printf("There was an error writing the the output file: %v\n", err)
@@ -61,21 +51,6 @@ func compileAndSave(path string, tokens []scanner.Token) error {
 
 	c := compiler.NewCompiler(tokens, f)
 	err = c.Compile()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func saveFile(path string, stmts []parser.SyntaxNode) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	err = parser.WriteXml(stmts, f, 0)
 	if err != nil {
 		return err
 	}
