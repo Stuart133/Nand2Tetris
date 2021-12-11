@@ -124,6 +124,7 @@ func (p *Compiler) subroutineBody(className, subroutineName string, subType int)
 		p.writer.WritePop(POINTER, 0)
 	} else if subType == scanner.CONSTRUCTOR {
 		size := p.global.getCount(FIELD)
+		p.subroutine.addSymbol("this", className, POINTER)
 		p.writer.WriteConstPush(fmt.Sprintf("%d", size))
 		p.writer.WriteCall("Memory.alloc", 1)
 		p.writer.WritePop(POINTER, 0)
@@ -344,6 +345,7 @@ func (c *Compiler) varInner(kind int) int {
 }
 
 func (c *Compiler) subroutineCallInner() {
+	count := 0
 	name := c.consume(scanner.IDENTIFIER).Lexeme
 	if c.check(scanner.DOT) {
 		subroutineName := c.consume(scanner.IDENTIFIER)
@@ -351,16 +353,19 @@ func (c *Compiler) subroutineCallInner() {
 		if !v {
 			name = fmt.Sprintf("%s.%s", name, subroutineName.Lexeme)
 		} else {
+			count++
 			c.writer.WritePush(symbol.kind, symbol.count)
 			name = fmt.Sprintf("%s.%s", symbol.typ, subroutineName.Lexeme)
 		}
 	} else {
 		symbol, _ := c.getSymbol("this")
+		name = fmt.Sprintf("%s.%s", symbol.typ, name)
+		count++
 		c.writer.WritePush(symbol.kind, symbol.count)
 	}
 
 	c.match(scanner.LEFT_PAREN)
-	count := c.expressionList()
+	count += c.expressionList()
 	c.match(scanner.RIGHT_PAREN)
 
 	c.writer.WriteCall(name, count)
