@@ -28,6 +28,17 @@ func newSymbolTable() symbolTable {
 	}
 }
 
+func (t *symbolTable) getCount(kind int) int {
+	count := 0
+	for _, v := range t.table {
+		if v.kind == kind {
+			count++
+		}
+	}
+
+	return count
+}
+
 func (t *symbolTable) addSymbol(name, typ string, kind int) {
 	t.table[name] = symbol{
 		typ:   typ,

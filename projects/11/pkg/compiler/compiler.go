@@ -34,7 +34,6 @@ func (c *Compiler) Compile() error {
 	for !c.isAtEnd() {
 		if c.check(scanner.CLASS) {
 			c.class()
-			c.writer.WriteLine()
 		} else {
 			panic("Unexpected token")
 		}
@@ -72,18 +71,17 @@ func (c *Compiler) classVarDec() {
 func (c *Compiler) subroutineDec(className string) {
 	c.subroutine = newSymbolTable()
 	c.branchCount = 0
-	c.writer.WriteLine()
 
 	var t int
 	if c.peek(scanner.METHOD) {
 		t = c.consume(scanner.METHOD).Type
 		c.subroutine.addSymbol("this", className, ARGUMENT)
+	} else if c.peek(scanner.CONSTRUCTOR) {
+		t = c.consume(scanner.CONSTRUCTOR).Type
 	} else {
-		// TODO: Constructors
-		t = c.consume(scanner.CONSTRUCTOR, scanner.FUNCTION).Type
+		t = c.consume(scanner.FUNCTION).Type
 	}
 
-	// TODO: Handle return type
 	rt := c.consume(scanner.VOID, scanner.IDENTIFIER, scanner.INT, scanner.CHAR, scanner.BOOLEAN)
 	c.funcReturn = rt.Type
 	name := c.consume(scanner.IDENTIFIER)
@@ -123,6 +121,11 @@ func (p *Compiler) subroutineBody(className, subroutineName string, subType int)
 	p.writer.WriteFunction(fmt.Sprintf("%s.%s", className, subroutineName), nVar)
 	if subType == scanner.METHOD {
 		p.writer.WritePush(ARGUMENT, 0)
+		p.writer.WritePop(POINTER, 0)
+	} else if subType == scanner.CONSTRUCTOR {
+		size := p.global.getCount(FIELD)
+		p.writer.WriteConstPush(fmt.Sprintf("%d", size))
+		p.writer.WriteCall("Memory.alloc", 1)
 		p.writer.WritePop(POINTER, 0)
 	}
 
